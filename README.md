@@ -1,3 +1,6 @@
+# Translucifer: A Translucent Log Generation Algorithm
+
+
 ### Using HPC
 
 #### Sign-In/Out
