@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<log xes.version="1849-2016" xes.features="nested-attributes" xmlns="http://www.xes-standard.org/">
+	<extension name="Time" prefix="time" uri="http://www.xes-standard.org/time.xesext" />
+	<extension name="Concept" prefix="concept" uri="http://www.xes-standard.org/concept.xesext" />
+	<string key="origin" value="csv" />
+	<trace>
+		<string key="concept:name" value="404" />
+		<event>
+			<int key="case_id" value="404" />
+			<string key="activity" value="a" />
+			<date key="timestamp" value="2010-12-30T13:32:00+00:00" />
+			<string key="enabled_activities" value="a" />
+			<string key="concept:name" value="a" />
+			<date key="time:timestamp" value="2010-12-30T13:32:00+00:00" />
+			<int key="@@index" value="0" />
+			<int key="@@case_index" value="0" />
+			<string key="enabled__activities" value="('a',)" />
+		</event>
+		<event>
+			<int key="case_id" value="404" />
+			<string key="activity" value="b" />
+			<date key="timestamp" value="2010-12-30T14:06:00+00:00" />
+			<string key="enabled_activities" value="b,c" />
+			<string key="concept:name" value="b" />
+			<date key="time:timestamp" value="2010-12-30T14:06:00+00:00" />
+			<int key="@@index" value="1" />
+			<int key="@@case_index" value="0" />
+			<string key="enabled__activities" value="('b', 'c')" />
+		</event>
+		<event>
+			<int key="case_id" value="404" />
+			<string key="activity" value="c" />
+			<date key="timestamp" value="2010-12-30T15:34:00+00:00" />
+			<string key="enabled_activities" value="c" />
+			<string key="concept:name" value="c" />
+			<date key="time:timestamp" value="2010-12-30T15:34:00+00:00" />
+			<int key="@@index" value="2" />
+			<int key="@@case_index" value="0" />
+			<string key="enabled__activities" value="('c',)" />
+		</event>
+		<event>
+			<int key="case_id" value="404" />
+			<string key="activity" value="e" />
+			<date key="timestamp" value="2011-01-06T08:18:00+00:00" />
+			<string key="enabled_activities" value="d,e" />
+			<string key="concept:name" value="e" />
+			<date key="time:timestamp" value="2011-01-06T08:18:00+00:00" />
+			<int key="@@index" value="3" />
+			<int key="@@case_index" value="0" />
+			<string key="enabled__activities" value="('d', 'e')" />
+		</event>
+	</trace>
+	<trace>
+		<string key="concept:name" value="911" />
+		<event>
+			<int key="case_id" value="911" />
+			<string key="activity" value="a" />
+			<date key="timestamp" value="2010-12-30T10:32:00+00:00" />
+			<string key="enabled_activities" value="a" />
+			<string key="concept:name" value="a" />
+			<date key="time:timestamp" value="2010-12-30T10:32:00+00:00" />
+			<int key="@@index" value="4" />
+			<int key="@@case_index" value="1" />
+			<string key="enabled__activities" value="('a',)" />
+		</event>
+		<event>
+			<int key="case_id" value="911" />
+			<string key="activity" value="c" />
+			<date key="timestamp" value="2010-12-30T11:12:00+00:00" />
+			<string key="enabled_activities" value="b,c" />
+			<string key="concept:name" value="c" />
+			<date key="time:timestamp" value="2010-12-30T11:12:00+00:00" />
+			<int key="@@index" value="5" />
+			<int key="@@case_index" value="1" />
+			<string key="enabled__activities" value="('b', 'c')" />
+		</event>
+		<event>
+			<int key="case_id" value="911" />
+			<string key="activity" value="b" />
+			<date key="timestamp" value="2010-12-30T13:16:00+00:00" />
+			<string key="enabled_activities" value="b" />
+			<string key="concept:name" value="b" />
+			<date key="time:timestamp" value="2010-12-30T13:16:00+00:00" />
+			<int key="@@index" value="6" />
+			<int key="@@case_index" value="1" />
+			<string key="enabled__activities" value="('b', 'd')" />
+		</event>
+		<event>
+			<int key="case_id" value="911" />
+			<string key="activity" value="d" />
+			<date key="timestamp" value="2011-01-05T10:22:00+00:00" />
+			<string key="enabled_activities" value="d,e" />
+			<string key="concept:name" value="d" />
+			<date key="time:timestamp" value="2011-01-05T10:22:00+00:00" />
+			<int key="@@index" value="7" />
+			<int key="@@case_index" value="1" />
+			<string key="enabled__activities" value="('d', 'e')" />
+		</event>
+		<event>
+			<int key="case_id" value="911" />
+			<string key="activity" value="b" />
+			<date key="timestamp" value="2011-01-08T11:05:00+00:00" />
+			<string key="enabled_activities" value="b,c" />
+			<string key="concept:name" value="b" />
+			<date key="time:timestamp" value="2011-01-08T11:05:00+00:00" />
+			<int key="@@index" value="8" />
+			<int key="@@case_index" value="1" />
+			<string key="enabled__activities" value="('c',)" />
+		</event>
+		<event>
+			<int key="case_id" value="911" />
+			<string key="activity" value="c" />
+			<date key="timestamp" value="2011-01-09T11:05:00+00:00" />
+			<string key="enabled_activities" value="c" />
+			<string key="concept:name" value="c" />
+			<date key="time:timestamp" value="2011-01-09T11:05:00+00:00" />
+			<int key="@@index" value="9" />
+			<int key="@@case_index" value="1" />
+			<string key="enabled__activities" value="('c',)" />
+		</event>
+		<event>
+			<int key="case_id" value="911" />
+			<string key="activity" value="e" />
+			<date key="timestamp" value="2011-01-10T11:05:00+00:00" />
+			<string key="enabled_activities" value="d,e" />
+			<string key="concept:name" value="e" />
+			<date key="time:timestamp" value="2011-01-10T11:05:00+00:00" />
+			<int key="@@index" value="10" />
+			<int key="@@case_index" value="1" />
+			<string key="enabled__activities" value="('d', 'e')" />
+		</event>
+	</trace>
+</log>
