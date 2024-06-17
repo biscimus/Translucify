@@ -41,6 +41,7 @@ def generate_translucent_log(log: pandas.DataFrame) -> pandas.DataFrame:
     def add_enabled_activities(group: pandas.DataFrame):
 
         trace = tuple(group["concept:name"].values)
+        print(f"Trace: {trace}")
         aligned_trace = trace_dict[trace]
 
         tuple_enabled_activities = get_enabled_activities(aligned_trace, reach_graph)
@@ -51,7 +52,7 @@ def generate_translucent_log(log: pandas.DataFrame) -> pandas.DataFrame:
         
         return group
 
-    return log.groupby('case:concept:name').apply(add_enabled_activities)
+    return log.groupby("case:concept:name", group_keys=False).apply(add_enabled_activities).reset_index()
 
 def get_enabled_activities(trace: tuple[str], reachability_graph: TransitionSystem) -> tuple[set[str]]:
 
