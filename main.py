@@ -10,12 +10,12 @@ def import_csv(file_path: str) -> pandas.DataFrame:
                                            activity_key='activity', timestamp_key='timestamp')
     return event_log
 
-def convert_csv_to_xes(csv_file_path: str) :
+def convert_csv_to_xes(csv_file_path: str) -> None:
     event_log = import_csv(csv_file_path)
     pm4py.write_xes(event_log, f"./{csv_file_path.split('.csv')[0]}.xes")
-    return pm4py.read_xes(f"./{csv_file_path}.xes")
+    return pm4py.read_xes(f"./{csv_file_path.split('.csv')[0]}.xes")
 
-def generate_translucent_log(log: pandas.DataFrame):
+def generate_translucent_log(log: pandas.DataFrame) -> pandas.DataFrame:
 
     # Discover the petri net
     net, im, fm = pm4py.discover_petri_net_inductive(log)
