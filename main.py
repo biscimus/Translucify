@@ -15,8 +15,3 @@ if __name__ == "__main__":
     log = add_activities(log, args.threshold)
 
     print(log)
-
-
-    # log = generate_translucent_log(log)
-    # print(log)
-    # pm4py.write_xes(log, "log1_translucent.xes")

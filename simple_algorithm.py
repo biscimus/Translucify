@@ -1,4 +1,5 @@
 import pandas
+from pm4py.stats import get_start_activities
 
 def add_activities(log: pandas.DataFrame, threshold: float) -> pandas.DataFrame:
 
@@ -10,23 +11,26 @@ def add_activities(log: pandas.DataFrame, threshold: float) -> pandas.DataFrame:
 
     # Create dictionary of enabled activities
     next_activities_dict = {index: set(next_activity_table.columns[row > 0]) for index, row in next_activity_table.iterrows()}
+    # Make a set out of keys of start_activities
+    start_activities = set(get_start_activities(log).keys())
+    # Add start activities to next_activities_dict
+    next_activities_dict.update({"start": start_activities})
     print(next_activities_dict)
 
-    # Add enabled_activities column to DataFrame
+    # Add enabled__activities column to DataFrame
     log["enabled__activities"] = None
 
-    def fill_enabled_activities_column(group: pandas.DataFrame) -> pandas.DataFrame:
-        for index, row in group.iterrows():
-            group.at[index, "enabled__activities"] = next_activities_dict[row["concept:name"]]
-            # Shift enabled__activites column by one
-        group["enabled__activities"] = group["enabled__activities"].shift(1)
+    def fill_enabled_activities_column(group: pandas.Series) -> pandas.DataFrame:
 
-        # Add value of activity to enabled_activities if it is not in the set
+        enabled_activities = next_activities_dict["start"].copy()
+
         for index, row in group.iterrows():
-            if row["enabled__activities"] is None:
-                row["enabled__activities"] = set()
-            row["enabled__activities"].add(row["concept:name"])
-            group.at[index, "enabled__activities"] = tuple(sorted(row["enabled__activities"], key=str.lower))
+            enabled_activities.add(row["concept:name"])
+            group.at[index, "enabled__activities"] = enabled_activities
+            print("enabled activities", next_activities_dict[row["concept:name"]])
+            enabled_activities = next_activities_dict[row["concept:name"]].copy()
+            # Shift enabled__activites column by one
+  
         return group
 
     return log.groupby("case:concept:name", group_keys=False).apply(fill_enabled_activities_column).reset_index()
