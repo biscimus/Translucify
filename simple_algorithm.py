@@ -17,10 +17,16 @@ def add_activities(log: pandas.DataFrame, threshold: float) -> pandas.DataFrame:
 
     def fill_enabled_activities_column(group: pandas.DataFrame) -> pandas.DataFrame:
         for index, row in group.iterrows():
-            group.at[index, "enabled__activities"] = tuple(sorted(next_activities_dict[row["concept:name"]], key=str.lower))
+            group.at[index, "enabled__activities"] = next_activities_dict[row["concept:name"]]
             # Shift enabled__activites column by one
         group["enabled__activities"] = group["enabled__activities"].shift(1)
-            
+
+        # Add value of activity to enabled_activities if it is not in the set
+        for index, row in group.iterrows():
+            if row["enabled__activities"] is None:
+                row["enabled__activities"] = set()
+            row["enabled__activities"].add(row["concept:name"])
+            group.at[index, "enabled__activities"] = tuple(sorted(row["enabled__activities"], key=str.lower))
         return group
 
     return log.groupby("case:concept:name", group_keys=False).apply(fill_enabled_activities_column).reset_index()
