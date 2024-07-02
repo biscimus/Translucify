@@ -4,10 +4,12 @@ from pm4py.stats import get_start_activities
 def add_activities(log: pandas.DataFrame, threshold: float) -> pandas.DataFrame:
 
     next_activity_table = get_next_activity_table(log)
+    
+    # Normalize the table
     next_activity_table = next_activity_table.div(next_activity_table.sum(axis=1), axis=0).fillna(0)
 
+    # Clip values below threshold
     next_activity_table[next_activity_table < threshold] = 0
-    print(next_activity_table)
 
     # Create dictionary of enabled activities
     next_activities_dict = {index: set(next_activity_table.columns[row > 0]) for index, row in next_activity_table.iterrows()}
@@ -26,11 +28,8 @@ def add_activities(log: pandas.DataFrame, threshold: float) -> pandas.DataFrame:
 
         for index, row in group.iterrows():
             enabled_activities.add(row["concept:name"])
-            group.at[index, "enabled__activities"] = enabled_activities
-            print("enabled activities", next_activities_dict[row["concept:name"]])
+            group.at[index, "enabled__activities"] = tuple(sorted(enabled_activities, key=str.lower))
             enabled_activities = next_activities_dict[row["concept:name"]].copy()
-            # Shift enabled__activites column by one
-  
         return group
 
     return log.groupby("case:concept:name", group_keys=False).apply(fill_enabled_activities_column).reset_index()
@@ -57,8 +56,3 @@ def get_next_activity_table(log: pandas.DataFrame) -> pandas.DataFrame:
     log.groupby("case:concept:name", group_keys=False).apply(fill_next_activity_table).reset_index()
     print(next_activity_table)
     return next_activity_table
-
-
-
-
-   
