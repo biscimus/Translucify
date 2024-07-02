@@ -1,3 +1,6 @@
 *.csv
 !log1.csv
 *.xes
+__pycache__
+.vscode/
+runs/
