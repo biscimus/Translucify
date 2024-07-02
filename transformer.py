@@ -1,6 +1,6 @@
 
 import tensorflow as tf
-from tensorflow.keras import layers
+from keras import layers
 
 class TransformerBlock(layers.Layer):
     def __init__(self, embed_dim, num_heads, ff_dim, rate=0.1):
@@ -86,3 +86,4 @@ def get_remaining_time_model(max_case_length, vocab_size, output_dim = 1,
     transformer = tf.keras.Model(inputs=[inputs, time_inputs], outputs=outputs,
         name = "remaining_time_transformer")
     return transformer
+
