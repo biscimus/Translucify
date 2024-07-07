@@ -1,6 +1,6 @@
 import pandas
 import pm4py
-from input_manager import convert_csv_to_xes
+from preprocessor import convert_csv_to_xes
 from alignment_based_generation import generate_translucent_log
 import argparse
 from simple_algorithm import add_activities

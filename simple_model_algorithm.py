@@ -1,8 +1,7 @@
-from input_manager import import_csv
+import argparse
+from preprocessor import import_csv, user_select_columns
 from pm4py.objects.log.obj import Trace
 from pm4py import view_petri_net, get_enabled_transitions, discover_petri_net_inductive
-import inquirer
-from dataclasses import dataclass, field
 from pandas import DataFrame, Series, get_dummies
 from pm4py.objects.petri_net.obj import PetriNet, Marking
 from pm4py.algo.conformance.alignments.petri_net.variants import dijkstra_less_memory
@@ -16,7 +15,7 @@ Activity = str
 ObservationInstances = dict[PetriNet.Transition, tuple[list[DataState], list[bool]]]
 RegressionModels = dict[PetriNet.Transition, LogisticRegression]
 
-def discover_translucent_log_from_model(petri_net: tuple[PetriNet, Marking, Marking], log: DataFrame) -> DataFrame:
+def discover_translucent_log_from_model(petri_net: tuple[PetriNet, Marking, Marking], log: DataFrame, threshold: float) -> DataFrame:
     
     print(f"Log data types: \n{log.dtypes}")
     # Choose (or select all) attribute columns
@@ -31,7 +30,7 @@ def discover_translucent_log_from_model(petri_net: tuple[PetriNet, Marking, Mark
 
     observation_instances: ObservationInstances = create_observation_instances(petri_net, log, feature_columns)
     regression_models: RegressionModels = create_regression_models(observation_instances, feature_columns)
-    return create_enabled_activities(petri_net, log, regression_models, feature_columns)
+    return create_enabled_activities(petri_net, log, regression_models, feature_columns, threshold)
 
 def preprocess_log(log: DataFrame, selected_columns: list[str]) -> DataFrame:
     # TODO: Preprocessing data more efficiently
@@ -39,23 +38,7 @@ def preprocess_log(log: DataFrame, selected_columns: list[str]) -> DataFrame:
     # Preprocess the log for data traces
     return get_dummies(log, columns=selected_columns, dtype=int)
 
-def user_select_columns(dataframe):
-    # Get all column names from the DataFrame
-    columns = dataframe.columns.tolist()
-    
-    # Create a list of inquirer questions
-    questions = [
-        inquirer.Checkbox('selected_columns',
-                          message="Select columns you want to include in the output DataFrame",
-                          choices=columns,
-                          )
-    ]
-    
-    # Prompt user to select columns
-    answers = inquirer.prompt(questions)
-    
-    # Return the DataFrame with only selected columns
-    return answers['selected_columns']
+
 
 def create_observation_instances(petri_net: tuple[PetriNet, Marking, Marking], log: DataFrame, feature_columns: list[str]) -> ObservationInstances:
     net, im, fm = petri_net
@@ -113,7 +96,7 @@ def create_regression_models(observation_instances, feature_columns: list[str]) 
 
     return regression_models
 
-def create_enabled_activities(petri_net: tuple[PetriNet, Marking, Marking], log: DataFrame, regression_models: dict[PetriNet.Transition, LogisticRegression], feature_columns: list[str]) -> DataFrame:
+def create_enabled_activities(petri_net: tuple[PetriNet, Marking, Marking], log: DataFrame, regression_models: dict[PetriNet.Transition, LogisticRegression], feature_columns: list[str], threshold: float) -> DataFrame:
 
     # Add column enabled_activities
     log["enabled_activities"] = None
@@ -129,8 +112,6 @@ def create_enabled_activities(petri_net: tuple[PetriNet, Marking, Marking], log:
     
         current_marking = im
         current_row_index = 0
-
-        threshold = 0.1
 
         for alignment in alignments["alignment"]:
             # Get all enabled transitions from the current marking
@@ -159,7 +140,13 @@ def create_enabled_activities(petri_net: tuple[PetriNet, Marking, Marking], log:
 
 
 if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser("simple_example")
+    parser.add_argument("threshold", help="The cutoff percentage.", type=float)
+    args = parser.parse_args()
+    threshold = args.threshold
+
     log = import_csv("sldpn_log.csv")
     net_with_markings = discover_petri_net_inductive(log)
-    log = discover_translucent_log_from_model(net_with_markings, log)
+    log = discover_translucent_log_from_model(net_with_markings, log, threshold=threshold)
     print(f"RESULT: \n{log}")
