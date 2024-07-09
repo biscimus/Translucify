@@ -121,7 +121,7 @@ def translucify_with_transformer(log: pd.DataFrame, threshold: float) -> pd.Data
 
 
     training_arguments = TrainingArguments(
-        output_dir=".",
+        output_dir="checkpoints",
         eval_strategy="epoch",
         per_device_train_batch_size=16,
         per_device_eval_batch_size=16,

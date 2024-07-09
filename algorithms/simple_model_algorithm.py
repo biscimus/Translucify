@@ -11,6 +11,9 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 import numpy as np
 from anytree import Node, RenderTree
+from custom_logger import log_to
+
+print = log_to('../logs/multivariate_regression.log')
 
 # Define DataState as type for dict[str, float]
 DataState = dict[str, float]
@@ -20,6 +23,8 @@ RegressionModels = dict[PetriNet.Transition, LogisticRegression]
 
 ACTIVITY_COLUMN = "concept:name"
 CASE_COLUMN = "case:concept:name"
+
+
 
 def discover_translucent_log_from_model(log_filepath: str, threshold: float) -> DataFrame:
     '''
@@ -38,22 +43,22 @@ def discover_translucent_log_from_model(log_filepath: str, threshold: float) -> 
 
     # Print number of traces of log
     num_traces = log[CASE_COLUMN].nunique()
-    print("Number of traces in log:", num_traces)
-    print("Log data types:\n", log.dtypes)
+    print(f"Number of traces in log: {num_traces}")
+    print(f"Log data types:\n {log.dtypes}")
     # Choose (or select all) attribute columns
     selected_columns = user_select_columns(log)
 
     log = preprocess_log(log, selected_columns)
-    print("Log after preprocessing:\n", log)
+    print(f"Log after preprocessing:\n {log}")
 
     # Select all log columns as features as long as their names start with a selected column name 
     feature_columns = [column for column in log.columns if any([column.startswith(selected_column) for selected_column in selected_columns])]
-    print("Feature Columns:\n", feature_columns)
+    print(f"Feature Columns:\n {feature_columns}")
 
     observation_instances: ObservationInstances = create_observation_instances(petri_net, log, feature_columns)
-    print("Observation Instances:\n", observation_instances)
+    print(f"Observation Instances:\n {observation_instances}")
     regression_models: RegressionModels = create_regression_models(observation_instances, feature_columns)
-    print("Regression Models:\n", regression_models)
+    print(f"Regression Models:\n {regression_models}")
     return create_enabled_activities(petri_net, log, regression_models, feature_columns, threshold)
 
 
@@ -70,11 +75,7 @@ def create_observation_instances(petri_net: tuple[PetriNet, Marking, Marking], l
     # Create a dictionary of transitions and its instances
     observation_instances: ObservationInstances = { transition: ([], []) for transition in net.transitions}
 
-    group_index = 0
     def fill_observation_instances(group: Series) -> DataFrame:
-        nonlocal group_index
-        print("Group index:", group_index)
-        group_index += 1
 
         # Create alignments for each trace
         trace = Trace([{ACTIVITY_COLUMN: activity} for activity in group[ACTIVITY_COLUMN]])
@@ -91,7 +92,7 @@ def create_observation_instances(petri_net: tuple[PetriNet, Marking, Marking], l
             fired_transition_name: str = alignment[0][1]
             fired_transition: PetriNet.Transition = next(filter(lambda transition: transition.name == fired_transition_name, enabled_transitions))
             #print("Fired transition:", fired_transition)
-            #print("Current data state index:", current_data_state_index)
+            print(f"Current data state index: {current_data_state_index}")
             # Get the data state of the current data state index
             try:
                 current_data_state: list[list[float | int]] = group[feature_columns].iloc[current_data_state_index].to_list()
@@ -200,12 +201,11 @@ def create_enabled_activities(petri_net: tuple[PetriNet, Marking, Marking], log:
             # Start DFS from the root node
             paths = []
             traverse_tree_dfs(root, [])
-            print("Paths:", paths)
+            print(f"Paths: {paths}")
 
             choices = [(prod([node.probability for node in path]), path[-1].transition.label) for path in paths]
-            #print("Choices:", choices)
             choices_filtered = tuple(sorted(set([choice[1] for choice in choices if choice[0] > threshold]), key=str.lower))
-            #print("Filtered choices:", choices_filtered)
+            print(f"Filtered choices: {choices_filtered}")
             
             # # Add enabled activities to the DataFrame
             group["enabled_activities"].iloc[current_row_index] = choices_filtered
