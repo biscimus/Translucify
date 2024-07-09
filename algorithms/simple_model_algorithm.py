@@ -36,6 +36,9 @@ def discover_translucent_log_from_model(log_filepath: str, threshold: float) -> 
     petri_net = discover_petri_net_inductive(log)
     # view_petri_net(petri_net[0], initial_marking=petri_net[1], final_marking=petri_net[2], format="pdf")
 
+    # Print number of traces of log
+    num_traces = log[CASE_COLUMN].nunique()
+    print("Number of traces in log:", num_traces)
     print("Log data types:\n", log.dtypes)
     # Choose (or select all) attribute columns
     selected_columns = user_select_columns(log)
@@ -67,9 +70,12 @@ def create_observation_instances(petri_net: tuple[PetriNet, Marking, Marking], l
     # Create a dictionary of transitions and its instances
     observation_instances: ObservationInstances = { transition: ([], []) for transition in net.transitions}
 
+    group_index = 0
     def fill_observation_instances(group: Series) -> DataFrame:
+        nonlocal group_index
+        print("Group index:", group_index)
+        group_index += 1
 
-        #print("Group:\n", group)
         # Create alignments for each trace
         trace = Trace([{ACTIVITY_COLUMN: activity} for activity in group[ACTIVITY_COLUMN]])
         alignments = dijkstra_less_memory.apply(trace, net, im, fm, parameters={dijkstra_less_memory.Parameters.PARAM_ALIGNMENT_RESULT_IS_SYNC_PROD_AWARE: True})
@@ -194,7 +200,7 @@ def create_enabled_activities(petri_net: tuple[PetriNet, Marking, Marking], log:
             # Start DFS from the root node
             paths = []
             traverse_tree_dfs(root, [])
-            #print("Paths:", paths)
+            print("Paths:", paths)
 
             choices = [(prod([node.probability for node in path]), path[-1].transition.label) for path in paths]
             #print("Choices:", choices)
@@ -224,5 +230,5 @@ if __name__ == "__main__":
     parser.add_argument("threshold", help="The cutoff percentage.", type=float)
     threshold = parser.parse_args().threshold
 
-    log = discover_translucent_log_from_model("../logs/sldpn_log.csv", threshold=threshold)
+    log = discover_translucent_log_from_model("../logs/Road_Traffic_Fine.xes", threshold=threshold)
     print("RESULT:\n", log)

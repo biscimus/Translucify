@@ -58,7 +58,7 @@ def preprocess_log(log: pandas.DataFrame, selected_columns: list[str]) -> pandas
     questions = []
     for column in selected_columns:
         questions.append(inquirer.List(column,
-                      message=f"Select the data type of the column. I'll give you a couple examples - {str(log[column].head(5).to_list())}",
+                      message=f"Select the data type of the column: {column}. I'll give you a couple examples - {str(log[column].head(5).to_list())}",
                       choices=["Categorical", "Numerical"],
                      ))
     # Prompt user to select the activity column
