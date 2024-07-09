@@ -120,9 +120,9 @@ def translucify_with_transformer(log: pd.DataFrame, threshold: float) -> pd.Data
     training_arguments = TrainingArguments(
         output_dir=".",
         eval_strategy="epoch",
-        per_device_train_batch_size=8,
-        per_device_eval_batch_size=8,
-        num_train_epochs=1,
+        per_device_train_batch_size=16,
+        per_device_eval_batch_size=16,
+        num_train_epochs=50,
         use_cpu=not is_gpu_available,
         # learning_rate=1e-5
     )
@@ -213,7 +213,7 @@ def translucify_with_transformer(log: pd.DataFrame, threshold: float) -> pd.Data
 
 # Call e.g.: python simple_transformer.py 0.5
 if __name__ == "__main__":
-    log = import_csv('../logs/helpdesk.csv')
+    log = import_csv('../logs/helpdesk.csv', separator=",", case_id="case_id", activity_key="activity", timestamp_key="timestamp")
 
     parser = argparse.ArgumentParser("simple_transformer")
     parser.add_argument("threshold", help="The cutoff percentage.", type=float)

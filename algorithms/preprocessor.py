@@ -2,27 +2,33 @@ import pandas
 import pm4py
 import inquirer
 
-def import_csv(file_path: str, separator=";") -> pandas.DataFrame:
+def import_csv(file_path: str, separator=";", *args) -> pandas.DataFrame:
+
     log = pandas.read_csv(file_path, sep=separator)
-    columns = log.columns.tolist()
-     # Create a list of inquirer questions
-    questions = [
-        inquirer.List('case_column',
-                      message="Select the column that contains the case ID",
-                      choices=columns,
-                     ),
-        inquirer.List('activity_column',
-                      message="Select the column that contains the activity names",
-                      choices=columns,
-                     ),
-        inquirer.List('timestamp_column',
-                       message="Select the column that contains the timestamps",
-                       choices=columns,
-                     )
-    ]
-    answers = inquirer.prompt(questions)
-    
-    case_id, activity_key, timestamp_key = answers['case_column'], answers['activity_column'], answers['timestamp_column']
+    # If user provides args, then we use the given args
+    # If not we prompt the user to select the columns
+    if len(args) > 0:
+        case_id, activity_key, timestamp_key = args
+    else:
+        columns = log.columns.tolist()
+        # Create a list of inquirer questions
+        questions = [
+            inquirer.List('case_column',
+                        message="Select the column that contains the case ID",
+                        choices=columns,
+                        ),
+            inquirer.List('activity_column',
+                        message="Select the column that contains the activity names",
+                        choices=columns,
+                        ),
+            inquirer.List('timestamp_column',
+                        message="Select the column that contains the timestamps",
+                        choices=columns,
+                        )
+        ]
+        answers = inquirer.prompt(questions)
+        case_id, activity_key, timestamp_key = answers['case_column'], answers['activity_column'], answers['timestamp_column']
+        
     log = pm4py.format_dataframe(log, case_id=case_id, activity_key=activity_key, timestamp_key=timestamp_key)
     return log
 
