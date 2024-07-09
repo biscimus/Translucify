@@ -1,9 +1,7 @@
-import pandas
-import pm4py
-from preprocessor import convert_csv_to_xes
-from alignment_based_generation import generate_translucent_log
+from algorithms.preprocessor import convert_csv_to_xes
+from algorithms.alignment_based_generation import generate_translucent_log
 import argparse
-from simple_algorithm import add_activities
+from algorithms.simple_algorithm import add_activities
 
 if __name__ == "__main__":
 
@@ -11,7 +9,7 @@ if __name__ == "__main__":
     parser.add_argument("threshold", help="The cutoff percentage.", type=float)
     args = parser.parse_args()
 
-    log = convert_csv_to_xes("log1.csv")
+    log = convert_csv_to_xes("logs/log1.csv")
     log = add_activities(log, args.threshold)
 
     print(log)
