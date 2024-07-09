@@ -202,6 +202,8 @@ def translucify_with_transformer(log: pd.DataFrame, threshold: float) -> pd.Data
             probabilities = torch.sigmoid(logits)  # Apply sigmoid to convert logits to probabilities
             print(probabilities)
 
+            # Move probabilities to CPU and convert to numpy array for further processing
+            probabilities = probabilities.cpu().numpy()
             high_prob_indices = (probabilities > threshold).nonzero(as_tuple=True)[1]
             string_labels = le.inverse_transform(high_prob_indices)
             print("String labels", string_labels)
