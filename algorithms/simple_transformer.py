@@ -213,7 +213,7 @@ def translucify_with_transformer(log: pd.DataFrame, threshold: float) -> pd.Data
 
 # Call e.g.: python simple_transformer.py 0.5
 if __name__ == "__main__":
-    log = import_csv('../logs/helpdesk.csv', separator=",", case_id="case_id", activity_key="activity", timestamp_key="timestamp")
+    log = import_csv('../logs/helpdesk.csv', separator=",")
 
     parser = argparse.ArgumentParser("simple_transformer")
     parser.add_argument("threshold", help="The cutoff percentage.", type=float)
