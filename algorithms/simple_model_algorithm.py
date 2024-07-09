@@ -11,9 +11,11 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 import numpy as np
 from anytree import Node, RenderTree
-from custom_logger import log_to
+from custom_logger import get_logger_by_flie_path
 
-print = log_to('../logs/multivariate_regression.log')
+
+logger = get_logger_by_flie_path('../logs/multivariate_regression.log')
+print = logger.debug
 
 # Define DataState as type for dict[str, float]
 DataState = dict[str, float]

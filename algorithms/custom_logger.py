@@ -1,6 +1,6 @@
 import logging
 
-def log_to(file_path: str) -> logging.Logger:
+def get_logger_by_flie_path(file_path: str) -> logging.Logger:
     # Create a logger
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
