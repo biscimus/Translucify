@@ -47,11 +47,14 @@ def translucify_with_transformer(log: pd.DataFrame, threshold: float) -> pd.Data
     log[NEXT_ACTIVITY_COLUMN] = le.transform(log[NEXT_ACTIVITY_COLUMN])
 
     print("Log after next activity column gen: \n", log)
-
-    # TODO: Currently we're simply concatenating all inputs into a single string. We need to tokenize the input in a more meaningful way
-
-    # The original ProcessTranformer paper uses only the activity prefixes as features. They map each activity to a a unique integer and make a list of integers for each prefix trace. They then just use that as input for the transformer. We cant do this since we are also considering other user selected data attributes as feature space :)
-
+    
+    '''
+    TODO: Currently we're simply concatenating all inputs into a single string. We need to tokenize the input in a more meaningful way
+    The original ProcessTranformer paper uses only the activity prefixes as features. 
+    They map each activity to a a unique integer and make a list of integers for each prefix trace. 
+    They then just use that as input for the transformer. 
+    We cant do this since we are also considering other user selected data attributes as feature space :)
+    '''
     labels_list: list[str] = []
     inputs_list: list[str] = []
 

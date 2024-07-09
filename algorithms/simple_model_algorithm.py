@@ -8,6 +8,7 @@ from pm4py.objects.petri_net.obj import PetriNet, Marking
 from pm4py.algo.conformance.alignments.petri_net.variants import dijkstra_less_memory
 from pm4py.objects.petri_net.semantics import PetriNetSemantics
 from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
 import numpy as np
 from anytree import Node, RenderTree
 
@@ -51,10 +52,6 @@ def discover_translucent_log_from_model(log_filepath: str, threshold: float) -> 
     regression_models: RegressionModels = create_regression_models(observation_instances, feature_columns)
     print("Regression Models:\n", regression_models)
     return create_enabled_activities(petri_net, log, regression_models, feature_columns, threshold)
-
-
-
-
 
 
 def create_observation_instances(petri_net: tuple[PetriNet, Marking, Marking], log: DataFrame, feature_columns: list[str]) -> ObservationInstances:
@@ -108,7 +105,7 @@ def create_observation_instances(petri_net: tuple[PetriNet, Marking, Marking], l
     log.groupby(CASE_COLUMN, group_keys=False).apply(fill_observation_instances).reset_index()
     return observation_instances
 
-def create_regression_models(observation_instances, feature_columns: list[str]) -> RegressionModels:
+def create_regression_models(observation_instances: ObservationInstances, feature_columns: list[str]) -> RegressionModels:
     '''
     Receives a dictionary of observation instances and creates a regression model for each transition.
     :param observation_instances: The dictionary of observation instances.
@@ -116,17 +113,30 @@ def create_regression_models(observation_instances, feature_columns: list[str]) 
     '''
     regression_models: RegressionModels = {transition: None for transition in observation_instances}
 
+    accuracy_scores: dict[PetriNet.Transition, float] = {}
+
     for transition, (data_states, labels) in observation_instances.items():
         X_dataframe = DataFrame(data_states, columns=feature_columns)
         Y_dataframe = DataFrame(labels, columns=["label"]).astype(int)
+
+        X_train, X_test, Y_train, Y_test = train_test_split(X_dataframe, Y_dataframe, test_size=0.2)
+
         try:
             # Add regression model to corresponding transition
-            regression = LogisticRegression(solver="liblinear").fit(X_dataframe, np.ravel(Y_dataframe))
+            regression = LogisticRegression(solver="liblinear").fit(X_train, np.ravel(Y_train))
             regression_models[transition] = regression
+            accuracy_scores[transition] = regression.score(X_test, np.ravel(Y_test))
         except ValueError:
+            print("Valueerror!")
             # Error if transition has a 100% change of firing. But there are some transitions that have 100% change of firing!
             # => Set the regression model to 1
             regression_models[transition] = 1
+            accuracy_scores[transition] = 1
+    
+    # Convert the accuracy scores into a dataframe then store in a csv file
+    accuracy_scores_dataframe = DataFrame(accuracy_scores.items(), columns=["Transition", "Accuracy Score"])
+    accuracy_scores_dataframe.to_csv("../logs/multivariate_regression_accuracy_scores.csv", index=False)
+
 
     return regression_models
 
@@ -214,5 +224,5 @@ if __name__ == "__main__":
     parser.add_argument("threshold", help="The cutoff percentage.", type=float)
     threshold = parser.parse_args().threshold
 
-    log = discover_translucent_log_from_model("../logs/Road_Traffic_Fine.xes", threshold=threshold)
+    log = discover_translucent_log_from_model("../logs/sldpn_log.csv", threshold=threshold)
     print("RESULT:\n", log)
