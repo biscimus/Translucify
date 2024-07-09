@@ -7,16 +7,19 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 import torch
 from torch.utils.data import Dataset, DataLoader
-from algorithms.preprocessor import import_csv, user_select_columns, user_select_activity_column, user_select_case_column
+from preprocessor import import_csv, user_select_columns, user_select_activity_column, user_select_case_column
 import argparse
+import evaluate
 
+ACTIVITY_COLUMN = "concept:name"
+CASE_COLUMN = "case:concept:name"
+NEXT_ACTIVITY_COLUMN = "next_activity"
+ENABLED_ACTIVITIES_COLUMN = "enabled_activities"
 
 def translucify_with_transformer(log: pd.DataFrame, threshold: float) -> pd.DataFrame:
 
-    case_column = user_select_case_column(log)
     # Get list of all activities
-    activity_column = user_select_activity_column(log)
-    labels = log[activity_column].unique()
+    labels = log[ACTIVITY_COLUMN].unique()
 
     # Append end activity to list
     labels = pd.Series(np.append(labels, ["end"]), dtype="string")
@@ -30,19 +33,18 @@ def translucify_with_transformer(log: pd.DataFrame, threshold: float) -> pd.Data
     selected_columns = user_select_columns(log)
 
     # Add next activity column to the DataFrame and fill it
-    next_activity_column = "next_activity"
-    log[next_activity_column] = None
+    log[NEXT_ACTIVITY_COLUMN] = None
     def fill_next_activity_column(group: pd.Series) -> pd.DataFrame:
         previous_index = None
         for index, row in group.iterrows():
             if previous_index is not None:
-                group.at[previous_index, next_activity_column] = row[activity_column]
+                group.at[previous_index, NEXT_ACTIVITY_COLUMN] = row[ACTIVITY_COLUMN]
             previous_index = index
         return group
-    log = log.groupby(case_column, group_keys=False).apply(fill_next_activity_column).reset_index()
+    log = log.groupby(CASE_COLUMN, group_keys=False).apply(fill_next_activity_column).reset_index()
     # Fill None values with the number of unique labels as end activity
-    log[next_activity_column] = log[next_activity_column].fillna("end")
-    log[next_activity_column] = le.transform(log[next_activity_column])
+    log[NEXT_ACTIVITY_COLUMN] = log[NEXT_ACTIVITY_COLUMN].fillna("end")
+    log[NEXT_ACTIVITY_COLUMN] = le.transform(log[NEXT_ACTIVITY_COLUMN])
 
     print("Log after next activity column gen: \n", log)
 
@@ -60,12 +62,12 @@ def translucify_with_transformer(log: pd.DataFrame, threshold: float) -> pd.Data
             input = ', '.join(map(str, input))
             input_prefix += input
             inputs_list.append(input_prefix)
-            labels_list.append(row[next_activity_column])
+            labels_list.append(row[NEXT_ACTIVITY_COLUMN])
             # Add separator to input
             input_prefix += "; "
         return group
 
-    log.groupby(case_column, group_keys=False).apply(generate_instances_per_case).reset_index()
+    log.groupby(CASE_COLUMN, group_keys=False).apply(generate_instances_per_case).reset_index()
 
     print("LOG after creating instances: \n", log)
 
@@ -114,14 +116,15 @@ def translucify_with_transformer(log: pd.DataFrame, threshold: float) -> pd.Data
     
     device = torch.device("cuda" if is_gpu_available else "cpu")
 
+
     training_arguments = TrainingArguments(
         output_dir=".",
         eval_strategy="epoch",
-        per_device_train_batch_size=16,
-        per_device_eval_batch_size=16,
-        num_train_epochs=50,
+        per_device_train_batch_size=8,
+        per_device_eval_batch_size=8,
+        num_train_epochs=1,
         use_cpu=not is_gpu_available,
-        learning_rate=1e-5
+        # learning_rate=1e-5
     )
 
     class MyTrainer(Trainer):
@@ -135,20 +138,48 @@ def translucify_with_transformer(log: pd.DataFrame, threshold: float) -> pd.Data
             loss = nn.CrossEntropyLoss()
             return (loss(logits, labels), outputs) if return_outputs else loss(logits, labels)
 
+    accuracy_metric = evaluate.load("accuracy")
+    precision_metric = evaluate.load("precision")
+    recall_metric = evaluate.load("recall")
+    f1_metric = evaluate.load("f1")
+
+
+    def compute_metrics(eval_pred):
+        predictions, labels = eval_pred
+        predictions = np.argmax(predictions, axis=1)
+
+        accuracy = accuracy_metric.compute(predictions=predictions, references=labels)
+        precision = precision_metric.compute(predictions=predictions, references=labels, average="weighted")
+        recall = recall_metric.compute(predictions=predictions, references=labels, average="weighted")
+        f1 = f1_metric.compute(predictions=predictions, references=labels, average="weighted")
+        return {
+            "accuracy": accuracy["accuracy"],
+            "precision": precision["precision"],
+            "recall": recall["recall"],
+            "f1": f1["f1"]
+        }
+
+
     trainer = MyTrainer(
         model=model,
         args=training_arguments,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
+        compute_metrics=compute_metrics
     )
 
     trainer.train()
 
-    model.eval()
+    eval_result = trainer.evaluate()
+    # turn eval_result to dataframe and write the results to csv file
+    eval_result_df = pd.DataFrame([eval_result])
+    eval_result_df.to_csv("../logs/transformer_eval_result.csv", index=False)
+
+
 
     # Add enabled activities to the log
-    enabled_activities_column = "enabled_activities"
-    log[enabled_activities_column] = None
+
+    log[ENABLED_ACTIVITIES_COLUMN] = None
 
     def fill_enabled_activities_column(group: pd.Series) -> pd.DataFrame:
 
@@ -173,23 +204,23 @@ def translucify_with_transformer(log: pd.DataFrame, threshold: float) -> pd.Data
             print("String labels", string_labels)
             #TODO: Add artificial start activity for training
             if enabled_activities is not None:
-                group.at[index, enabled_activities_column] = tuple(sorted(enabled_activities, key=str.lower))
+                group.at[index, ENABLED_ACTIVITIES_COLUMN] = sorted(enabled_activities, key=str.lower)
             enabled_activities = string_labels
         return group
 
-    log = log.groupby(case_column, group_keys=False).apply(fill_enabled_activities_column).reset_index()
+    log = log.groupby(CASE_COLUMN, group_keys=False).apply(fill_enabled_activities_column).reset_index()
     return log
 
-
+# Call e.g.: python simple_transformer.py 0.5
 if __name__ == "__main__":
-    log = import_csv('logs/helpdesk.csv', case_id="case_id", activity_key="activity", timestamp_key="timestamp", separator=";")
+    log = import_csv('../logs/helpdesk.csv')
 
     parser = argparse.ArgumentParser("simple_transformer")
     parser.add_argument("threshold", help="The cutoff percentage.", type=float)
     args = parser.parse_args()
     log = translucify_with_transformer(log, args.threshold)
-    log.to_csv('logs/helpdesk_translucified.csv', index=False)
-    
+    print(log)
+    log.to_csv("../logs/helpdesk_log_translucified.csv", index=False)
 
 # # Generate all prefixes of each trace and the corresponding next activity
 # for trace in traces:
