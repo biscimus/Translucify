@@ -7,21 +7,21 @@ from pandas import DataFrame, Series
 from pm4py.objects.petri_net.obj import PetriNet, Marking
 from pm4py.algo.conformance.alignments.petri_net.variants import dijkstra_less_memory
 from pm4py.objects.petri_net.semantics import PetriNetSemantics
-from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 import numpy as np
 from anytree import Node, RenderTree
 from custom_logger import get_logger_by_flie_path
 
 
-logger = get_logger_by_flie_path('../logs/multivariate_regression.log')
+logger = get_logger_by_flie_path('../logs/random_forest.log')
 print = logger.debug
 
 # Define DataState as type for dict[str, float]
 DataState = dict[str, float]
 Activity = str
 ObservationInstances = dict[PetriNet.Transition, tuple[list[DataState], list[bool]]]
-RegressionModels = dict[PetriNet.Transition, LogisticRegression]
+RandomForests = dict[PetriNet.Transition, RandomForestClassifier]
 
 ACTIVITY_COLUMN = "concept:name"
 CASE_COLUMN = "case:concept:name"
@@ -59,9 +59,9 @@ def discover_translucent_log_from_model(log_filepath: str, threshold: float) -> 
 
     observation_instances: ObservationInstances = create_observation_instances(petri_net, log, feature_columns)
     print(f"Observation Instances:\n {observation_instances}")
-    regression_models: RegressionModels = create_regression_models(observation_instances, feature_columns)
-    print(f"Regression Models:\n {regression_models}")
-    return create_enabled_activities(petri_net, log, regression_models, feature_columns, threshold)
+    random_forests: RandomForests = create_random_forests(observation_instances, feature_columns)
+    print(f"RF Models:\n {random_forests}")
+    return create_enabled_activities(petri_net, log, random_forests, feature_columns, threshold)
 
 
 def create_observation_instances(petri_net: tuple[PetriNet, Marking, Marking], log: DataFrame, feature_columns: list[str]) -> ObservationInstances:
@@ -114,13 +114,13 @@ def create_observation_instances(petri_net: tuple[PetriNet, Marking, Marking], l
     log.groupby(CASE_COLUMN, group_keys=False).apply(fill_observation_instances).reset_index()
     return observation_instances
 
-def create_regression_models(observation_instances: ObservationInstances, feature_columns: list[str]) -> RegressionModels:
+def create_random_forests(observation_instances: ObservationInstances, feature_columns: list[str]) -> RandomForests:
     '''
-    Receives a dictionary of observation instances and creates a regression model for each transition.
+    Receives a dictionary of observation instances and creates a random forest for each transition.
     :param observation_instances: The dictionary of observation instances.
     :param feature_columns: The list of feature columns.
     '''
-    regression_models: RegressionModels = {transition: None for transition in observation_instances}
+    random_forests: RandomForests = {transition: None for transition in observation_instances}
 
     accuracy_scores: dict[PetriNet.Transition, float] = {}
 
@@ -131,25 +131,25 @@ def create_regression_models(observation_instances: ObservationInstances, featur
         X_train, X_test, Y_train, Y_test = train_test_split(X_dataframe, Y_dataframe, test_size=0.2)
 
         try:
-            # Add regression model to corresponding transition
-            regression = LogisticRegression(solver="liblinear").fit(X_train, np.ravel(Y_train))
-            regression_models[transition] = regression
-            accuracy_scores[transition] = regression.score(X_test, np.ravel(Y_test))
+            # Add random forest to corresponding transition
+            rf = RandomForestClassifier().fit(X_train, np.ravel(Y_train))
+            random_forests[transition] = rf
+            accuracy_scores[transition] = rf.score(X_test, np.ravel(Y_test))
         except ValueError:
             #print("Valueerror!")
             # Error if transition has a 100% change of firing. But there are some transitions that have 100% change of firing!
-            # => Set the regression model to 1
-            regression_models[transition] = 1
+            # => Set the rf to 1
+            random_forests[transition] = 1
             accuracy_scores[transition] = 1
     
     # Convert the accuracy scores into a dataframe then store in a csv file
     accuracy_scores_dataframe = DataFrame(accuracy_scores.items(), columns=["Transition", "Accuracy Score"])
-    accuracy_scores_dataframe.to_csv("../logs/multivariate_regression_accuracy_scores.csv", index=False)
+    accuracy_scores_dataframe.to_csv("../logs/random_forest_accuracy_scores.csv", index=False)
 
 
-    return regression_models
+    return random_forests
 
-def create_enabled_activities(petri_net: tuple[PetriNet, Marking, Marking], log: DataFrame, regression_models: dict[PetriNet.Transition, LogisticRegression], feature_columns: list[str], threshold: float) -> DataFrame:
+def create_enabled_activities(petri_net: tuple[PetriNet, Marking, Marking], log: DataFrame, random_forests: dict[PetriNet.Transition, RandomForests], feature_columns: list[str], threshold: float) -> DataFrame:
 
     # Add column enabled_activities
     log["enabled_activities"] = None
@@ -178,11 +178,11 @@ def create_enabled_activities(petri_net: tuple[PetriNet, Marking, Marking], log:
                 #print("Enabled transitions:", enabled_transitions)
 
                 # Compute weighted sum of probabilities of enabled transitions
-                sum_of_probs = sum([regression_models[enabled_transition].predict_proba(current_data_state)[0][0] if regression_models[enabled_transition]!=1 else 1 for enabled_transition in enabled_transitions])
+                sum_of_probs = sum([random_forests[enabled_transition].predict_proba(current_data_state)[0][0] if random_forests[enabled_transition]!=1 else 1 for enabled_transition in enabled_transitions])
 
                 # Add all activities as children of the node
                 for enabled_transition in enabled_transitions:
-                    probability = regression_models[enabled_transition].predict_proba(current_data_state)[0][0] if regression_models[enabled_transition]!=1 else 1
+                    probability = random_forests[enabled_transition].predict_proba(current_data_state)[0][0] if random_forests[enabled_transition]!=1 else 1
                     probability /= sum_of_probs
                     child_node = Node(enabled_transition.name, parent=node, transition=enabled_transition, probability=probability)
                     if child_node.transition.label is None:
@@ -232,5 +232,5 @@ if __name__ == "__main__":
     parser.add_argument("threshold", help="The cutoff percentage.", type=float)
     threshold = parser.parse_args().threshold
 
-    log = discover_translucent_log_from_model("../logs/Road_Traffic_Fine.xes", threshold=threshold)
+    log = discover_translucent_log_from_model("../logs/sldpn_log.csv", threshold=threshold)
     print("RESULT:\n", log)

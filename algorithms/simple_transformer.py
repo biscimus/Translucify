@@ -7,7 +7,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 import torch
 from torch.utils.data import Dataset, DataLoader
-from preprocessor import import_csv, user_select_columns, user_select_activity_column, user_select_case_column
+from preprocessor import import_csv, user_select_columns
 import argparse
 import evaluate
 
