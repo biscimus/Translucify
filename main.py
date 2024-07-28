@@ -15,7 +15,6 @@ if __name__ == "__main__":
 
     log = import_csv("logs/helpdesk.csv", ",")
 
-    log.rename(columns={"case_id": "case:concept:name", "activity": "concept:name", "timestamp": "time:timestamp"}, inplace=True)
     print(log)
     # log = read_xes("logs/sepsis.xes")
     # log = log[["case:concept:name", "concept:name"] + [col for col in log.columns if col != "case:concept:name" and col != "concept:name"]]
