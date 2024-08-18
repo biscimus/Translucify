@@ -1,8 +1,4 @@
-import {
-    createRootRoute,
-    createRootRouteWithContext,
-    Outlet,
-} from "@tanstack/react-router";
+import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 import React from "react";
 import { MantineProvider } from "@mantine/core";
 import "@mantine/core/styles.css";

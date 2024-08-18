@@ -1,13 +1,5 @@
 import { getEventLogs } from "@lib/queries";
-import {
-    AppShell,
-    Burger,
-    Group,
-    Loader,
-    NavLink,
-    Skeleton,
-    Title,
-} from "@mantine/core";
+import { AppShell, Burger, Loader, NavLink, Title } from "@mantine/core";
 import { IconTable } from "@tabler/icons-react";
 import { useDisclosure } from "@mantine/hooks";
 import { useQuery } from "@tanstack/react-query";

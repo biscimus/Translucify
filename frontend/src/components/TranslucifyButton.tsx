@@ -1,13 +1,5 @@
 import { Button, Menu, rem, Text } from "@mantine/core";
-import {
-    IconArrowsLeftRight,
-    IconMessageCircle,
-    IconPhoto,
-    IconSearch,
-    IconSettings,
-    IconTrash,
-    IconAi,
-} from "@tabler/icons-react";
+import { IconMessageCircle, IconSettings, IconAi } from "@tabler/icons-react";
 
 export default function TranslucifyButton() {
     return (

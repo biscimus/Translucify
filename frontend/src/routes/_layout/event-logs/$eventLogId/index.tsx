@@ -1,18 +1,8 @@
 import TranslucifyButton from "@components/TranslucifyButton";
 import { getEventLog } from "@lib/queries";
 import { EventLog } from "@lib/types";
-import {
-    Badge,
-    Button,
-    Chip,
-    Flex,
-    Space,
-    Stack,
-    Table,
-    Title,
-} from "@mantine/core";
-import { createFileRoute, useLoaderData } from "@tanstack/react-router";
-import { log } from "console";
+import { Badge, Flex, Space, Stack, Table, Title } from "@mantine/core";
+import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_layout/event-logs/$eventLogId/")({
     loader: ({ params, context: { queryClient } }) => {

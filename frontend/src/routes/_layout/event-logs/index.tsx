@@ -1,15 +1,7 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { getEventLogs, postEventLog } from "@lib/queries";
-import {
-    Button,
-    FileButton,
-    Flex,
-    Loader,
-    Paper,
-    Table,
-    Title,
-} from "@mantine/core";
+import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { getEventLogs } from "@lib/queries";
+import { Flex, Loader, Paper, Table, Title } from "@mantine/core";
 import UploadEventLog from "@components/UploadEventLog";
 
 export const Route = createFileRoute("/_layout/event-logs/")({

@@ -39,3 +39,6 @@ backend/algorithms/
 backend/algorithms/runs/*
 backend/algorithms/checkpoint*/**
 backend/algorithms/checkpoint*/**
+
+# Backend logs
+backend/logs/*
