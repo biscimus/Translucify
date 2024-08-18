@@ -40,5 +40,7 @@ backend/algorithms/runs/*
 backend/algorithms/checkpoint*/**
 backend/algorithms/checkpoint*/**
 
-# Backend logs
-backend/logs/*
+backend/logs/**
+
+# Vite
+frontend/.vite
