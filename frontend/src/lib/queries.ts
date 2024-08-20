@@ -60,6 +60,13 @@ export async function getTranslucentLogs(eventLogId: number) {
 }
 
 export async function getTranslucentLog(translucentLogId: number) {
-    return (await axios.get(`/translucent-event-logs/${translucentLogId}`))
-        .data;
+    const response = await axios.get(
+        `/translucent-event-logs/${translucentLogId}`,
+        {
+            responseType: "blob",
+        }
+    );
+    console.log("Headers: ", response.headers);
+    console.log("Data: ", response.data);
+    return response.data;
 }

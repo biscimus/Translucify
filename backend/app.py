@@ -217,7 +217,9 @@ def event_log_petri_net(id):
         print("Type of data columns: ", type(data_columns))
 
         event_log = db.get_or_404(EventLog, id)
-        base_name, extension = os.path.split(event_log.file_path)
+        base_name, extension = os.path.splitext(event_log.file_path)
+        print("Base name: ", base_name)
+        print("extension: ", extension)
         file_path = os.path.join(base_name + "_translucent_petri_net" + extension)
 
         # Save to database first
@@ -261,5 +263,6 @@ def translucent_logs(id):
 def translucent_log(id):
     translucent_log = db.get_or_404(TranslucentEventLog, id)
     file_path = translucent_log.file_path
+    print("file path: ", file_path)
     
-    return send_file(file_path)
+    return send_file(file_path, as_attachment=True)

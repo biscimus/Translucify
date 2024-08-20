@@ -148,16 +148,31 @@ function LogDetailComponent({ eventLog }: { eventLog: EventLog }) {
                                             size="sm"
                                             onClick={async () => {
                                                 console.log("Buton clikced");
-                                                await queryClient.fetchQuery({
-                                                    queryKey: [
-                                                        "translucent-event-logs",
-                                                        log.id,
-                                                    ],
-                                                    queryFn: () =>
-                                                        getTranslucentLog(
-                                                            log.id!
-                                                        ),
-                                                });
+                                                const blob =
+                                                    await queryClient.fetchQuery(
+                                                        {
+                                                            queryKey: [
+                                                                "translucent-event-logs",
+                                                                log.id,
+                                                            ],
+                                                            queryFn: () =>
+                                                                getTranslucentLog(
+                                                                    log.id!
+                                                                ),
+                                                        }
+                                                    );
+                                                const url =
+                                                    window.URL.createObjectURL(
+                                                        blob
+                                                    );
+                                                const a =
+                                                    document.createElement("a");
+                                                a.href = url;
+                                                a.download = log.name;
+                                                document.body.appendChild(a);
+                                                a.click();
+                                                a.remove();
+                                                window.URL.revokeObjectURL(url);
                                             }}
                                         >
                                             <IconDownload />
