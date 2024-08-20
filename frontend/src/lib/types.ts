@@ -1,13 +1,32 @@
 export interface EventLog {
-    id?: string;
+    id?: number;
     name: string;
-    type: "CSV" | "XES";
+    type: EventLogType;
     value: File | string;
 }
 
 export interface ProcessModel {
-    id: string;
+    id: number;
     name: string;
-    type: "PREFIX_AUTOMATON" | "PETRINET";
+    type: ProcessModelType;
     value: File;
+}
+
+export interface TranslucentEventLog {
+    id?: number;
+    name: string;
+    type: EventLogType;
+    file_path: string;
+    is_ready: boolean;
+    event_log_id: number;
+}
+
+export enum EventLogType {
+    CSV = "CSV",
+    XES = "XES",
+}
+
+export enum ProcessModelType {
+    PETRINET = "PETRINET",
+    PREFIX_AUTOMATON = "PREFIX_AUTOMATON",
 }

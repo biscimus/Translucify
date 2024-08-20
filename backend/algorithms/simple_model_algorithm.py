@@ -1,9 +1,12 @@
 import argparse
 from math import prod
-from preprocessor import import_csv, preprocess_log, user_select_columns
+import os
+import pandas as pd
+from sqlalchemy import TIMESTAMP
+from .preprocessor import convert_csv_to_xes, preprocess_log, user_select_columns
 from pm4py.objects.log.obj import Trace
 from pm4py import view_petri_net, get_enabled_transitions, discover_petri_net_inductive, read_xes
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, read_csv
 from pm4py.objects.petri_net.obj import PetriNet, Marking
 from pm4py.algo.conformance.alignments.petri_net.variants import dijkstra_less_memory
 from pm4py.objects.petri_net.semantics import PetriNetSemantics
@@ -11,11 +14,12 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 import numpy as np
 from anytree import Node, RenderTree
-from custom_logger import get_logger_by_flie_path
+from .custom_logger import get_logger_by_flie_path
+from pm4py.objects.log.util.dataframe_utils import convert_timestamp_columns_in_df
 
 
-logger = get_logger_by_flie_path('../logs/multivariate_regression.log')
-print = logger.debug
+# logger = get_logger_by_flie_path('../logs/multivariate_regression.log')
+# print = logger.debug
 
 # Define DataState as type for dict[str, float]
 DataState = dict[str, float]
@@ -25,21 +29,36 @@ RegressionModels = dict[PetriNet.Transition, LogisticRegression]
 
 ACTIVITY_COLUMN = "concept:name"
 CASE_COLUMN = "case:concept:name"
+TIMESTAMP_COLUMN = "time:timestamp"
 
 
 
-def discover_translucent_log_from_model(log_filepath: str, threshold: float) -> DataFrame:
+def discover_translucent_log_from_model(log_filepath: str, data_columns: list[dict[str]], threshold: float) -> DataFrame:
     '''
     This function discovers a translucent log from a given log file path using a threshold.
     :param log_filepath: The file path of the log file.
     :param threshold: The cutoff percentage.
     '''
+    
     # If log flie is a CSV file, import it as a DataFrame
     # Else if log file is a XES file, import it as a log object
-    if (log_filepath.endswith(".csv")):
-        log = import_csv(log_filepath)
-    else: log = read_xes(log_filepath)
+    if log_filepath.endswith(".csv"):
+        log = read_csv(log_filepath, sep=";")
 
+        print("Event log from CSV: \n", log)
+        log = convert_timestamp_columns_in_df(log)
+        log[CASE_COLUMN] = log[CASE_COLUMN].astype("string")
+    else:
+        log = read_xes(log_filepath)
+
+    # check dataframe types
+    print("DTYPES: ", log.dtypes)
+    # Set time:timestamp to datetime
+    # pd.to_datetime(df["time:timestamp"])
+ 
+    print("Changed types: ", log.dtypes)
+
+    print("Dataframe from log: \n", log)
     petri_net = discover_petri_net_inductive(log)
     # view_petri_net(petri_net[0], initial_marking=petri_net[1], final_marking=petri_net[2], format="pdf")
 
@@ -48,13 +67,18 @@ def discover_translucent_log_from_model(log_filepath: str, threshold: float) -> 
     print(f"Number of traces in log: {num_traces}")
     print(f"Log data types:\n {log.dtypes}")
     # Choose (or select all) attribute columns
-    selected_columns = user_select_columns(log)
 
-    log = preprocess_log(log, selected_columns)
+    print("data column: ", [data_column for data_column in data_columns])
+    # Preprocess log
+    categorical_columns = [data_column["column"] for data_column in data_columns if data_column["type"] == "categorical"]
+
+    log = pd.get_dummies(log, columns=categorical_columns, dtype=int)
+
+    # log = preprocess_log(log, selected_columns)
     print(f"Log after preprocessing:\n {log}")
 
-    # Select all log columns as features as long as their names start with a selected column name 
-    feature_columns = [column for column in log.columns if any([column.startswith(selected_column) for selected_column in selected_columns])]
+    # # Select all log columns as features as long as their names start with a selected column name (Due to one-hot encoding)
+    feature_columns = [column for column in log.columns if any([column.startswith(data_column["column"]) for data_column in data_columns])]
     print(f"Feature Columns:\n {feature_columns}")
 
     observation_instances: ObservationInstances = create_observation_instances(petri_net, log, feature_columns)
@@ -144,8 +168,16 @@ def create_regression_models(observation_instances: ObservationInstances, featur
     
     # Convert the accuracy scores into a dataframe then store in a csv file
     accuracy_scores_dataframe = DataFrame(accuracy_scores.items(), columns=["Transition", "Accuracy Score"])
-    accuracy_scores_dataframe.to_csv("../logs/multivariate_regression_accuracy_scores.csv", index=False)
 
+    
+    # Define the path
+    directory = '../logs'
+    file_path = os.path.join(directory, 'multivariate_regression_accuracy_scores.csv')
+
+    if not os.path.exists(directory):
+        os.makedirs(directory)  # Create the directory if it does not exist
+
+    accuracy_scores_dataframe.to_csv(file_path, index=False)
 
     return regression_models
 
@@ -232,5 +264,5 @@ if __name__ == "__main__":
     parser.add_argument("threshold", help="The cutoff percentage.", type=float)
     threshold = parser.parse_args().threshold
 
-    log = discover_translucent_log_from_model("../logs/Road_Traffic_Fine.xes", threshold=threshold)
-    print("RESULT:\n", log)
+    # log = discover_translucent_log_from_model("../logs/Road_Traffic_Fine.xes", data_columns, threshold)
+    # print("RESULT:\n", log)

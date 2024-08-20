@@ -23,7 +23,7 @@ On localhost, the rewrite will be made to the `127.0.0.1:5000` port, which is wh
 
 ## Getting Started
 
-First, install the dependencies:
+For the frontend, install the dependencies:
 
 ```bash
 npm install
@@ -45,4 +45,10 @@ pnpm dev
 
 Open [http://localhost:5173](http://localhost:5173) with your browser to see the result.
 
-The Flask server will be running on [http://127.0.0.1:5000](http://127.0.0.1:5000) – feel free to change the port in `package.json`.
+For the backend, run:
+
+```
+flask run --debug
+```
+
+to start the development server. The Flask server will be running on [http://127.0.0.1:5000](http://127.0.0.1:5000).

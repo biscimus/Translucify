@@ -33,7 +33,7 @@ def import_csv(file_path: str, separator=";") -> pandas.DataFrame:
     return log
 
 def convert_csv_to_xes(csv_file_path: str) -> pandas.DataFrame:
-    event_log = import_csv(csv_file_path)
+    event_log = pandas.read_csv(csv_file_path, sep=";")
     pm4py.write_xes(event_log, f"./{csv_file_path.split('.csv')[0]}.xes")
     return pm4py.read_xes(f"./{csv_file_path.split('.csv')[0]}.xes")
 
@@ -76,11 +76,9 @@ def user_select_columns(dataframe) -> list[str]:
     return answers['selected_columns']
 
 def fetch_dataframe(file_path: str, file_type: str) -> pandas.DataFrame:
-    print("Current Working Directory:", os.getcwd())
-    full_path = os.path.join("logs", file_path)
-    if file_type == "csv":
-        return pandas.read_csv(full_path, delimiter=";")
-    elif file_type == "xes":
-        return pm4py.read_xes(full_path)
+    if file_type == "CSV":
+        return pandas.read_csv(file_path, delimiter=";")
+    elif file_type == "XES":
+        return pm4py.read_xes(file_path)
     else:
         raise ValueError("Invalid file type. Please provide a valid file type: csv or xes")

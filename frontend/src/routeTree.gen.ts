@@ -15,6 +15,9 @@ import { Route as LayoutImport } from './routes/_layout'
 import { Route as IndexImport } from './routes/index'
 import { Route as LayoutEventLogsIndexImport } from './routes/_layout/event-logs/index'
 import { Route as LayoutEventLogsEventLogIdIndexImport } from './routes/_layout/event-logs/$eventLogId/index'
+import { Route as LayoutEventLogsEventLogIdTransformerIndexImport } from './routes/_layout/event-logs/$eventLogId/transformer/index'
+import { Route as LayoutEventLogsEventLogIdPrefixAutomatonIndexImport } from './routes/_layout/event-logs/$eventLogId/prefix-automaton/index'
+import { Route as LayoutEventLogsEventLogIdPetriNetIndexImport } from './routes/_layout/event-logs/$eventLogId/petri-net/index'
 
 // Create/Update Routes
 
@@ -36,6 +39,24 @@ const LayoutEventLogsIndexRoute = LayoutEventLogsIndexImport.update({
 const LayoutEventLogsEventLogIdIndexRoute =
   LayoutEventLogsEventLogIdIndexImport.update({
     path: '/event-logs/$eventLogId/',
+    getParentRoute: () => LayoutRoute,
+  } as any)
+
+const LayoutEventLogsEventLogIdTransformerIndexRoute =
+  LayoutEventLogsEventLogIdTransformerIndexImport.update({
+    path: '/event-logs/$eventLogId/transformer/',
+    getParentRoute: () => LayoutRoute,
+  } as any)
+
+const LayoutEventLogsEventLogIdPrefixAutomatonIndexRoute =
+  LayoutEventLogsEventLogIdPrefixAutomatonIndexImport.update({
+    path: '/event-logs/$eventLogId/prefix-automaton/',
+    getParentRoute: () => LayoutRoute,
+  } as any)
+
+const LayoutEventLogsEventLogIdPetriNetIndexRoute =
+  LayoutEventLogsEventLogIdPetriNetIndexImport.update({
+    path: '/event-logs/$eventLogId/petri-net/',
     getParentRoute: () => LayoutRoute,
   } as any)
 
@@ -71,6 +92,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutEventLogsEventLogIdIndexImport
       parentRoute: typeof LayoutImport
     }
+    '/_layout/event-logs/$eventLogId/petri-net/': {
+      id: '/_layout/event-logs/$eventLogId/petri-net/'
+      path: '/event-logs/$eventLogId/petri-net'
+      fullPath: '/event-logs/$eventLogId/petri-net'
+      preLoaderRoute: typeof LayoutEventLogsEventLogIdPetriNetIndexImport
+      parentRoute: typeof LayoutImport
+    }
+    '/_layout/event-logs/$eventLogId/prefix-automaton/': {
+      id: '/_layout/event-logs/$eventLogId/prefix-automaton/'
+      path: '/event-logs/$eventLogId/prefix-automaton'
+      fullPath: '/event-logs/$eventLogId/prefix-automaton'
+      preLoaderRoute: typeof LayoutEventLogsEventLogIdPrefixAutomatonIndexImport
+      parentRoute: typeof LayoutImport
+    }
+    '/_layout/event-logs/$eventLogId/transformer/': {
+      id: '/_layout/event-logs/$eventLogId/transformer/'
+      path: '/event-logs/$eventLogId/transformer'
+      fullPath: '/event-logs/$eventLogId/transformer'
+      preLoaderRoute: typeof LayoutEventLogsEventLogIdTransformerIndexImport
+      parentRoute: typeof LayoutImport
+    }
   }
 }
 
@@ -81,6 +123,9 @@ export const routeTree = rootRoute.addChildren({
   LayoutRoute: LayoutRoute.addChildren({
     LayoutEventLogsIndexRoute,
     LayoutEventLogsEventLogIdIndexRoute,
+    LayoutEventLogsEventLogIdPetriNetIndexRoute,
+    LayoutEventLogsEventLogIdPrefixAutomatonIndexRoute,
+    LayoutEventLogsEventLogIdTransformerIndexRoute,
   }),
 })
 
@@ -103,7 +148,10 @@ export const routeTree = rootRoute.addChildren({
       "filePath": "_layout.tsx",
       "children": [
         "/_layout/event-logs/",
-        "/_layout/event-logs/$eventLogId/"
+        "/_layout/event-logs/$eventLogId/",
+        "/_layout/event-logs/$eventLogId/petri-net/",
+        "/_layout/event-logs/$eventLogId/prefix-automaton/",
+        "/_layout/event-logs/$eventLogId/transformer/"
       ]
     },
     "/_layout/event-logs/": {
@@ -112,6 +160,18 @@ export const routeTree = rootRoute.addChildren({
     },
     "/_layout/event-logs/$eventLogId/": {
       "filePath": "_layout/event-logs/$eventLogId/index.tsx",
+      "parent": "/_layout"
+    },
+    "/_layout/event-logs/$eventLogId/petri-net/": {
+      "filePath": "_layout/event-logs/$eventLogId/petri-net/index.tsx",
+      "parent": "/_layout"
+    },
+    "/_layout/event-logs/$eventLogId/prefix-automaton/": {
+      "filePath": "_layout/event-logs/$eventLogId/prefix-automaton/index.tsx",
+      "parent": "/_layout"
+    },
+    "/_layout/event-logs/$eventLogId/transformer/": {
+      "filePath": "_layout/event-logs/$eventLogId/transformer/index.tsx",
       "parent": "/_layout"
     }
   }
