@@ -1,6 +1,6 @@
-from preprocessor import import_csv
+from .preprocessor import import_csv
 import pandas as pd
-from transition_system import TransitionSystem, State, Transition
+from .transition_system import TransitionSystem, State, Transition
 
 def generate_prefix_automaton(log: pd.DataFrame):
     prefix_automaton = TransitionSystem(name="prefix_automaton", states=set(), transitions=set())
@@ -22,6 +22,7 @@ def generate_prefix_automaton(log: pd.DataFrame):
             next_state = next((state for state in prefix_automaton.states if state.name == f"<{next_prefix}>"), None)
             if not next_state:
                 next_state = State(f"<{next_prefix}>", data={"frequency": 0})
+                print("Activity: ", activity)
                 new_transition = Transition(activity, curr_state, next_state)
                 curr_state.outgoing.add(new_transition)
                 next_state.incoming.add(new_transition)

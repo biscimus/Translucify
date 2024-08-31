@@ -7,7 +7,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 import torch
 from torch.utils.data import Dataset, DataLoader
-from preprocessor import import_csv, user_select_columns
+from .preprocessor import import_csv, user_select_columns
 import argparse
 import evaluate
 
@@ -16,7 +16,7 @@ CASE_COLUMN = "case:concept:name"
 NEXT_ACTIVITY_COLUMN = "next_activity"
 ENABLED_ACTIVITIES_COLUMN = "enabled_activities"
 
-def translucify_with_transformer(log: pd.DataFrame, threshold: float) -> pd.DataFrame:
+def translucify_with_transformer(log: pd.DataFrame, data_columns: list[str],threshold: float) -> pd.DataFrame:
 
     # Get list of all activities
     labels = log[ACTIVITY_COLUMN].unique()
@@ -30,7 +30,7 @@ def translucify_with_transformer(log: pd.DataFrame, threshold: float) -> pd.Data
     le = LabelEncoder().fit(labels)
 
     # Select data features
-    selected_columns = user_select_columns(log)
+    # selected_columns = user_select_columns(log)
 
     # Add next activity column to the DataFrame and fill it
     log[NEXT_ACTIVITY_COLUMN] = None
@@ -61,7 +61,7 @@ def translucify_with_transformer(log: pd.DataFrame, threshold: float) -> pd.Data
     def generate_instances_per_case(group: pd.Series) -> pd.DataFrame:
         input_prefix: str = ""
         for index, row in group.iterrows():
-            input = row[selected_columns].values.tolist()
+            input = row[data_columns].values.tolist()
             input = ', '.join(map(str, input))
             input_prefix += input
             inputs_list.append(input_prefix)
@@ -190,7 +190,7 @@ def translucify_with_transformer(log: pd.DataFrame, threshold: float) -> pd.Data
 
         for index, row in group.iterrows():
             # Generate input instance
-            input = row[selected_columns].values.tolist()
+            input = row[data_columns].values.tolist()
             input = ', '.join(map(str, input))
             inputs = tokenizer(input, padding=True, truncation=True, return_tensors="pt")
             inputs = inputs.to(device)

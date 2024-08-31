@@ -55,6 +55,27 @@ export async function postTranslucentPetriNetColumns({
     ).data;
 }
 
+export async function getTransluscentPrefixAutomaton(eventLogId: string) {
+    return (await axios.get(`/event-logs/${eventLogId}/prefix-automaton`)).data;
+}
+
+export async function postTranslucentPrefixAutomaton({
+    eventLogId,
+    states,
+    transitions,
+}: {
+    eventLogId: string;
+    states: any[];
+    transitions: any[];
+}) {
+    return (
+        await axios.post(`/event-logs/${eventLogId}/prefix-automaton`, {
+            states,
+            transitions,
+        })
+    ).data;
+}
+
 export async function getTranslucentLogs(eventLogId: number) {
     return (await axios.get(`/event-logs/${eventLogId}/translucent-logs`)).data;
 }
@@ -69,4 +90,26 @@ export async function getTranslucentLog(translucentLogId: number) {
     console.log("Headers: ", response.headers);
     console.log("Data: ", response.data);
     return response.data;
+}
+
+export async function getTranslucentTransformerColumns(eventLogId: string) {
+    return (await axios.get(`/event-logs/${eventLogId}/transformer/columns`))
+        .data;
+}
+
+export async function postTransluscnetTransformer({
+    eventLogId,
+    columns,
+    threshold,
+}: {
+    eventLogId: string;
+    columns: string[];
+    threshold: number;
+}) {
+    return (
+        await axios.post(`/event-logs/${eventLogId}/transformer/columns`, {
+            threshold,
+            columns,
+        })
+    ).data;
 }

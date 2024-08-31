@@ -1,5 +1,4 @@
 import {
-    getEventLog,
     getTranslucentPetriNetColumns,
     postTranslucentPetriNetColumns,
 } from "@lib/queries";
