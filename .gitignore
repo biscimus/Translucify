@@ -41,6 +41,7 @@ backend/algorithms/checkpoint*/**
 backend/algorithms/checkpoint*/**
 
 backend/logs/**
+logs/
 
 # Vite
 frontend/.vite

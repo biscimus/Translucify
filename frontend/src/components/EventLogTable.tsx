@@ -64,6 +64,7 @@ export default function EventLogTable({ eventLogId }: { eventLogId: string }) {
                         </Table.Tbody>
                     </Table>
                 </Table.ScrollContainer>
+                <Space h="md" />
                 <Stack align="center">
                     <Pagination
                         total={paginationTotal}
