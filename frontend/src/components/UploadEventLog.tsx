@@ -8,12 +8,14 @@ import {
     Select,
     Stack,
     Group,
+    Checkbox,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { patchColumns, postEventLog } from "@lib/queries";
 import { Link } from "@tanstack/react-router";
+import { EventLogType } from "@lib/types";
 
 export default function UploadEventLogButton({
     children,
@@ -33,8 +35,10 @@ export default function UploadEventLogButton({
     // Step 1 states
     const [name, setName] = useState("");
     const [file, setFile] = useState<File | null>(null);
+    const [delimiter, setDelimiter] = useState("");
 
     const [columns, setColumns] = useState<string[]>([]);
+    const [isChecked, setIsChecked] = useState(false);
 
     // Step 1 mutation
     const fileMutation = useMutation({
@@ -62,6 +66,7 @@ export default function UploadEventLogButton({
         },
     });
 
+    console.log(delimiter);
     return (
         <>
             <Button onClick={open}>{children}</Button>
@@ -83,14 +88,32 @@ export default function UploadEventLogButton({
                                 label="Event Log Data"
                                 description="We currently only accept CSV and XES files. The CSV file must be delimited with semicolons."
                             />
+                            <Checkbox
+                                checked={isChecked}
+                                onChange={(event) =>
+                                    setIsChecked(event.currentTarget.checked)
+                                }
+                                label="I'm using a different delimiter"
+                            />
+                            {isChecked ? (
+                                <TextInput
+                                    label="Delimiter"
+                                    onChange={(e) =>
+                                        setDelimiter(e.target.value)
+                                    }
+                                    value={delimiter}
+                                />
+                            ) : null}
+
                             <Button
                                 onClick={() => {
                                     fileMutation.mutate({
                                         name: name,
                                         type: file?.name.endsWith(".csv")
-                                            ? "CSV"
-                                            : "XES",
+                                            ? EventLogType.CSV
+                                            : EventLogType.XES,
                                         value: file as File,
+                                        delimiter: delimiter,
                                     });
                                 }}
                             >

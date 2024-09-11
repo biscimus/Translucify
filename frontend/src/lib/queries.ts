@@ -10,11 +10,16 @@ export async function getEventLog(eventLogId: string) {
     return (await axios.get<EventLog>(`/event-logs/${eventLogId}`)).data;
 }
 
+export async function getEventLogMetadata(eventLogId: string) {
+    return (await axios.get(`/event-logs/${eventLogId}/metadata`)).data;
+}
+
 export async function postEventLog(eventLog: EventLog) {
     const formData = new FormData();
     formData.append("name", eventLog.name);
     formData.append("type", eventLog.type);
     formData.append("value", eventLog.value);
+    formData.append("delimiter", eventLog.delimiter);
     return (await axios.post<EventLog>("/event-logs", formData)).data;
 }
 
@@ -33,12 +38,12 @@ export async function patchColumns({
         .data;
 }
 
-export async function getTranslucentPetriNetColumns(eventLogId: string) {
-    return (await axios.get(`/event-logs/${eventLogId}/petri-net/columns`))
+export async function getEventLogColumns(eventLogId: string) {
+    return (await axios.get<string[]>(`/event-logs/${eventLogId}/columns`))
         .data;
 }
 
-export async function postTranslucentPetriNetColumns({
+export async function postTranslucentPetriNet({
     eventLogId,
     columns,
     threshold,
@@ -48,7 +53,7 @@ export async function postTranslucentPetriNetColumns({
     threshold: number;
 }) {
     return (
-        await axios.post(`/event-logs/${eventLogId}/petri-net/columns`, {
+        await axios.post(`/event-logs/${eventLogId}/petri-net`, {
             columns,
             threshold,
         })
@@ -63,20 +68,26 @@ export async function postTranslucentPrefixAutomaton({
     eventLogId,
     states,
     transitions,
+    selectedColumns,
+    threshold,
 }: {
     eventLogId: string;
     states: any[];
     transitions: any[];
+    selectedColumns: any[];
+    threshold: number;
 }) {
     return (
         await axios.post(`/event-logs/${eventLogId}/prefix-automaton`, {
             states,
             transitions,
+            selectedColumns,
+            threshold,
         })
     ).data;
 }
 
-export async function getTranslucentLogs(eventLogId: number) {
+export async function getTranslucentLogs(eventLogId: string) {
     return (await axios.get(`/event-logs/${eventLogId}/translucent-logs`)).data;
 }
 
@@ -92,11 +103,6 @@ export async function getTranslucentLog(translucentLogId: number) {
     return response.data;
 }
 
-export async function getTranslucentTransformerColumns(eventLogId: string) {
-    return (await axios.get(`/event-logs/${eventLogId}/transformer/columns`))
-        .data;
-}
-
 export async function postTransluscnetTransformer({
     eventLogId,
     columns,
@@ -107,7 +113,7 @@ export async function postTransluscnetTransformer({
     threshold: number;
 }) {
     return (
-        await axios.post(`/event-logs/${eventLogId}/transformer/columns`, {
+        await axios.post(`/event-logs/${eventLogId}/transformer`, {
             threshold,
             columns,
         })

@@ -1,10 +1,11 @@
+import EventLogTable from "@components/EventLogTable";
 import TranslucifyButton from "@components/TranslucifyButton";
 import {
-    getEventLog,
+    getEventLogMetadata,
     getTranslucentLog,
     getTranslucentLogs,
 } from "@lib/queries";
-import { EventLog, TranslucentEventLog } from "@lib/types";
+import { TranslucentEventLog } from "@lib/types";
 import {
     ActionIcon,
     Badge,
@@ -23,22 +24,24 @@ import { createFileRoute } from "@tanstack/react-router";
 export const Route = createFileRoute("/_layout/event-logs/$eventLogId/")({
     loader: ({ params, context: { queryClient } }) => {
         return queryClient.ensureQueryData({
-            queryKey: ["event-logs", params.eventLogId],
+            queryKey: ["event-logs", params.eventLogId, "metadata"],
             queryFn: () => {
-                return getEventLog(params.eventLogId);
+                return getEventLogMetadata(params.eventLogId);
             },
         });
     },
     component: () => {
-        const eventLog = Route.useLoaderData();
-        return <LogDetailComponent eventLog={eventLog} />;
+        const { eventLogId } = Route.useParams();
+        return <LogDetailComponent eventLogId={eventLogId} />;
     },
 });
 
-function LogDetailComponent({ eventLog }: { eventLog: EventLog }) {
-    console.log("Event Log: ", eventLog);
-    const logData = JSON.parse(eventLog.value as string);
-    // console.log("Data: ", logData);
+function LogDetailComponent({ eventLogId }: { eventLogId: string }) {
+    const { data: eventLogMetadata } = useQuery({
+        queryKey: ["event-logs", eventLogId, "metadata"],
+        queryFn: () => getEventLogMetadata(eventLogId),
+    });
+
     const queryClient = useQueryClient();
 
     const {
@@ -47,20 +50,15 @@ function LogDetailComponent({ eventLog }: { eventLog: EventLog }) {
         isError,
         isSuccess,
     } = useQuery({
-        queryKey: ["event-logs", eventLog.id, "translucent-logs"],
-        queryFn: () => getTranslucentLogs(eventLog.id!),
+        queryKey: ["event-logs", eventLogId, "translucent-logs"],
+        queryFn: () => getTranslucentLogs(eventLogId),
     });
-
-    function transposeSimple(data: any) {
-        const keys = Object.keys(data[0]); // Get keys from the first object
-        return keys.map((key) => data.map((obj: any) => obj[key]));
-    }
 
     return (
         <div style={{ padding: "2rem" }}>
             <Flex justify="space-between">
                 <Stack>
-                    <Title>{eventLog.name}</Title>
+                    <Title>{eventLogMetadata.name}</Title>
                 </Stack>
                 <TranslucifyButton />
             </Flex>
@@ -70,7 +68,7 @@ function LogDetailComponent({ eventLog }: { eventLog: EventLog }) {
                 variant="gradient"
                 gradient={{ from: "blue", to: "cyan", deg: 90 }}
             >
-                Type: {eventLog.type}
+                Type: {eventLogMetadata.type}
             </Badge>
             <Space h="xl" />
 
@@ -85,7 +83,7 @@ function LogDetailComponent({ eventLog }: { eventLog: EventLog }) {
                         queryClient.invalidateQueries({
                             queryKey: [
                                 "event-logs",
-                                eventLog.id,
+                                eventLogId,
                                 "translucent-logs",
                             ],
                         });
@@ -97,11 +95,6 @@ function LogDetailComponent({ eventLog }: { eventLog: EventLog }) {
 
             <Space h="xs" />
 
-            {/* <LoadingOverlay
-                    zIndex={1000}
-                    visible={isLoading}
-                    overlayProps={{ radius: "sm", blur: 2 }}
-                > */}
             <Table>
                 <Table.Thead>
                     <Table.Tr>
@@ -186,26 +179,7 @@ function LogDetailComponent({ eventLog }: { eventLog: EventLog }) {
 
             <Space h="xl" />
 
-            <Title order={4}>Log Data</Title>
-            <Space h="xs" />
-            <Table>
-                <Table.Thead>
-                    <Table.Tr>
-                        {Object.keys(logData).map((key) => (
-                            <Table.Th key={key}>{key}</Table.Th>
-                        ))}
-                    </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                    {transposeSimple(Object.values(logData)).map((row) => (
-                        <Table.Tr>
-                            {row.map((value: string) => (
-                                <Table.Td>{value}</Table.Td>
-                            ))}
-                        </Table.Tr>
-                    ))}
-                </Table.Tbody>
-            </Table>
+            <EventLogTable eventLogId={eventLogId} />
         </div>
     );
 }

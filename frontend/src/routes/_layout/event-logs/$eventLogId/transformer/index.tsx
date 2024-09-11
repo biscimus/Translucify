@@ -1,7 +1,4 @@
-import {
-    getTranslucentTransformerColumns,
-    postTransluscnetTransformer,
-} from "@lib/queries";
+import { getEventLogColumns, postTransluscnetTransformer } from "@lib/queries";
 import {
     Space,
     Title,
@@ -36,7 +33,7 @@ function TransformerComponent({ eventLogId }: { eventLogId: string }) {
         isSuccess,
     } = useQuery<string[]>({
         queryKey: ["event-logs", eventLogId, "transformer/columns"],
-        queryFn: () => getTranslucentTransformerColumns(eventLogId),
+        queryFn: () => getEventLogColumns(eventLogId),
     });
 
     const columnMutation = useMutation({

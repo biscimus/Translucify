@@ -12,22 +12,24 @@ import "@xyflow/react/dist/style.css";
 import { useCallback, useMemo, useState } from "react";
 import PANode from "./PANode";
 import PAEdge from "./PAEdge";
-import { Button } from "@mantine/core";
+import { Button, Group, Stack } from "@mantine/core";
 import { useNavigate } from "@tanstack/react-router";
-import { useMutation } from "@tanstack/react-query";
-import { postTranslucentPrefixAutomaton } from "@lib/queries";
+import { ColumnDefinition } from "src/routes/_layout/event-logs/$eventLogId/petri-net";
 
 export default function PrefixAutomaton({
     data,
     eventLogId,
+    prefixAutomatonMutation,
+    selectedColumns,
+    threshold,
 }: {
     data: any;
     eventLogId: string;
+    prefixAutomatonMutation: any;
+    selectedColumns: ColumnDefinition[];
+    threshold: number;
 }) {
     const navigate = useNavigate();
-    const prefixAutomatonMutation = useMutation({
-        mutationFn: postTranslucentPrefixAutomaton,
-    });
 
     const [selectedStates, setSelectedStates] = useState<string[]>([]);
     console.log("Selected States: ", selectedStates);
@@ -61,7 +63,7 @@ export default function PrefixAutomaton({
     };
     initialNodes.push(node);
 
-    const numOfTransitions = initialState.outgoing.length;
+    // const numOfTransitions = initialState.outgoing.length;
 
     const addState = (
         prevState: any,
@@ -224,11 +226,11 @@ export default function PrefixAutomaton({
     };
 
     return (
-        <div>
+        <Stack>
             {/* <pre>{JSON.stringify(data, null, 2)}</pre> */}
             <div
                 style={{
-                    border: "solid 1px white",
+                    border: "solid 0.5px white",
                     borderRadius: "5px",
                     width: "75vw",
                     height: "60vh",
@@ -254,36 +256,40 @@ export default function PrefixAutomaton({
                     <Controls />
                 </ReactFlow>
             </div>
-            <Button
-                style={{ marginTop: "1rem" }}
-                onClick={() => {
-                    prefixAutomatonMutation.mutate({
-                        eventLogId,
-                        states: nodes.map((node) => {
-                            return {
-                                id: node.id,
-                                name: node.data.label,
-                            };
-                        }),
-                        transitions: edges.map((edge) => {
-                            return {
-                                id: edge.id,
-                                name: edge.label,
-                                from_state: edge.source,
-                                to_state: edge.target,
-                            };
-                        }),
-                    });
-                    navigate({
-                        from: "/event-logs/$eventLogId/prefix-automaton",
-                        to: "/event-logs/$eventLogId",
-                    });
-                }}
-                variant="gradient"
-                gradient={{ from: "blue", to: "cyan", deg: 90 }}
-            >
-                Discover Translucent Log
-            </Button>
-        </div>
+            <Group justify="end">
+                <Button
+                    fullWidth={false}
+                    onClick={() => {
+                        prefixAutomatonMutation.mutate({
+                            eventLogId,
+                            states: nodes.map((node) => {
+                                return {
+                                    id: node.id,
+                                    name: node.data.label,
+                                };
+                            }),
+                            transitions: edges.map((edge) => {
+                                return {
+                                    id: edge.id,
+                                    name: edge.label,
+                                    from_state: edge.source,
+                                    to_state: edge.target,
+                                };
+                            }),
+                            selectedColumns,
+                            threshold,
+                        });
+                        navigate({
+                            from: "/event-logs/$eventLogId/prefix-automaton",
+                            to: "/event-logs/$eventLogId",
+                        });
+                    }}
+                    variant="gradient"
+                    gradient={{ from: "blue", to: "cyan", deg: 90 }}
+                >
+                    Discover Translucent Log
+                </Button>
+            </Group>
+        </Stack>
     );
 }

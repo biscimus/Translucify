@@ -3,6 +3,7 @@ export interface EventLog {
     name: string;
     type: EventLogType;
     value: File | string;
+    delimiter: string;
 }
 
 export interface ProcessModel {

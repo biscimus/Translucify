@@ -10,12 +10,12 @@ from flask import request, jsonify, send_file
 from flask_alembic import Alembic
 import csv
 import pandas as pd
+import requests
 
 from algorithms.preprocessor import fetch_dataframe
 from algorithms.simple_model_algorithm import discover_translucent_log_from_model
-from algorithms.simple_transformer import translucify_with_transformer
-from algorithms.simple_prefix_automaton import generate_prefix_automaton
-from algorithms.postprocessor import encode_prefix_automaton
+from algorithms.simple_prefix_automaton import discover_translucent_log_from_pa, generate_prefix_automaton
+from algorithms.postprocessor import decode_prefix_automaton, encode_prefix_automaton
 
 # Init app
 app = Flask(__name__)
@@ -109,30 +109,24 @@ def event_logs():
         if 'value' not in request.files:
             return "No file sent", 400
         
-        name, type, file = request.form.get("name"), request.form.get("type"), request.files.get("value")
+        name, type, file, delimiter = request.form.get("name"), request.form.get("type"), request.files.get("value"), request.form.get("delimiter")
 
-        # Detect delimiter
-        sniffer = csv.Sniffer()
-        dialect = sniffer.sniff(file.stream.readline().decode("utf-8"))
-        # reset file pointer
-        file.stream.seek(0)
 
-        print("Delimiter: ", dialect.delimiter)
+        print("Delimiter: ", delimiter)
 
         # Save file first
         file_path = os.path.join("logs", file.filename)
         print("File path: ", file_path)
         file.save(file_path)
 
-        # Change delimiter to ; if it is ,
-        if (dialect.delimiter != ";"):
+        # Change delimiter if necessary
+        if (delimiter != ""):
             print("Changing delimiter") 
             with open(file_path, "r") as infile:    
-                reader = csv.reader(infile, delimiter=dialect.delimiter) 
+                reader = csv.reader(infile, delimiter=delimiter) 
                  
                 with open(file_path + "delimit", "w") as outfile:
                     writer = csv.writer(outfile, delimiter=';')
-                    writer.write
                     writer.writerows(reader)
 
             # Remove old file
@@ -155,18 +149,24 @@ def event_logs():
             "columns": columns 
         }
     
+@app.route("/event-logs/<int:id>/metadata", methods=["GET"])
+def event_log_metadata(id):
+    event_log = db.get_or_404(EventLog, id)
+    return jsonify({
+            "id": event_log.id,
+            "name": event_log.name,
+            "type": event_log.type.value,
+        })
+    
 @app.route("/event-logs/<int:id>", methods=["GET", "PATCH", "DELETE"])
 def event_log(id):
     if request.method == "GET":
         event_log = db.get_or_404(EventLog, id)
         # Get file path and send it back
         print("File path: ", event_log.file_path)
-        print("Type: ", event_log.type.value)
         df = fetch_dataframe(event_log.file_path, event_log.type.value)
 
         df_json = df.to_json()
-
-        print("DF JSON: ", df_json)
         
         result = jsonify({
             "id": event_log.id,
@@ -175,8 +175,6 @@ def event_log(id):
             "value": df_json
         })
 
-        print("Result: ", result)
-
         return result
     elif request.method == "PATCH":
         return "Update event log"
@@ -184,25 +182,32 @@ def event_log(id):
         event_log = db.get_or_404(EventLog, id)
         db.session.delete(event_log)
 
-@app.route("/event-logs/<int:id>/columns", methods=["PATCH"])
+@app.route("/event-logs/<int:id>/columns", methods=["PATCH", "GET"])
 def event_log_columns(id):
-    event_log = db.get_or_404(EventLog, id)
-    file_path = event_log.file_path
-    print("Update columns for: ", file_path)
-    # Get request body
-    body = request.json
-    columns = body.get("columns")
-    print("Columns: ", columns)
+    if request.method == "GET":
+        event_log = db.get_or_404(EventLog, id)
+        df = fetch_dataframe(event_log.file_path, event_log.type.value)
+        columns = df.columns.tolist()
+        return jsonify(columns)
+    
+    elif request.method == "PATCH":
+        event_log = db.get_or_404(EventLog, id)
+        file_path = event_log.file_path
+        print("Update columns for: ", file_path)
+        # Get request body
+        body = request.json
+        columns = body.get("columns")
+        print("Columns: ", columns)
 
-    df = fetch_dataframe(file_path, event_log.type.value)
+        df = fetch_dataframe(file_path, event_log.type.value)
 
-    df.rename(columns={columns.get("caseId"): "case:concept:name", columns.get("activity"): "concept:name", columns.get("timestamp"): "time:timestamp"}, inplace=True)
+        df.rename(columns={columns.get("caseId"): "case:concept:name", columns.get("activity"): "concept:name", columns.get("timestamp"): "time:timestamp"}, inplace=True)
 
-    print("Changed dataframe: ", df)
+        print("Changed dataframe: ", df)
 
-    df.to_csv(file_path, sep=";", index=False)
+        df.to_csv(file_path, sep=";", index=False)
 
-    return "Update columns for event log"
+        return "Update columns for event log"
 
 @app.route("/event-logs/<int:id>/prefix-automaton", methods=["GET", "POST"])
 def prefix_automaton(id):
@@ -216,37 +221,26 @@ def prefix_automaton(id):
         payload = encode_prefix_automaton(prefix_automaton)
         return jsonify(payload)
     elif request.method == "POST":
-        body = request.json
-        states = body.get("states")
-        transitions = body.get("transitions")
-        print("States: ", states)
-        print("Transitions: ", transitions)
-        return "Creating prefix automaton"
-
-
-@app.route("/event-logs/<int:id>/petri-net/columns", methods=["GET", "POST"])
-def event_log_petri_net(id):
-    if request.method == "GET":
         event_log = db.get_or_404(EventLog, id)
-        df = fetch_dataframe(event_log.file_path, event_log.type.value)
-        columns = df.columns.tolist()
-        return jsonify(columns)
-    elif request.method == "POST":
-        body = request.json
-        data_columns = body.get("columns")
-        threshold: float = body.get("threshold")
 
-        event_log = db.get_or_404(EventLog, id)
         base_name, extension = os.path.splitext(event_log.file_path)
         file_path = os.path.join(base_name + "_translucent_petri_net" + extension)
 
         # Save to database first
-        translucent_log = TranslucentEventLog(name=event_log.name + "_translucent_petri_net", type=EventLogType.CSV, file_path=file_path, is_ready=False, event_log_id=event_log.id)
-
+        translucent_log = TranslucentEventLog(name=event_log.name + "_translucent_prefix_automaton", type=EventLogType.CSV, file_path=file_path, is_ready=False, event_log_id=event_log.id)
         db.session.add(translucent_log)
         db.session.commit()
 
-        df = discover_translucent_log_from_model(event_log.file_path, data_columns, threshold)
+        df = fetch_dataframe(event_log.file_path, event_log.type.value)
+        body = request.json
+        print("Body for post prefix automaton: ", body)
+        states = body.get("states")
+        transitions = body.get("transitions")
+        threshold = body.get("threshold")
+        selected_columns = body.get("selectedColumns")
+        prefix_automaton = decode_prefix_automaton(states, transitions)
+        df = discover_translucent_log_from_pa(df, prefix_automaton, selected_columns, threshold)
+
 
         # Save the translucent log to file system
         df.to_csv(file_path, sep=";", index=False)
@@ -258,33 +252,64 @@ def event_log_petri_net(id):
         db.session.commit()
 
         return df.to_json()
+
+
+@app.route("/event-logs/<int:id>/petri-net", methods=["POST"])
+def event_log_petri_net(id):
+    body = request.json
+    data_columns = body.get("columns")
+    threshold: float = body.get("threshold")
+
+    event_log = db.get_or_404(EventLog, id)
+    base_name, extension = os.path.splitext(event_log.file_path)
+    file_path = os.path.join(base_name + "_translucent_petri_net" + extension)
+
+    # Save to database first
+    translucent_log = TranslucentEventLog(name=event_log.name + "_translucent_petri_net", type=EventLogType.CSV, file_path=file_path, is_ready=False, event_log_id=event_log.id)
+
+    db.session.add(translucent_log)
+    db.session.commit()
+
+    df = discover_translucent_log_from_model(event_log.file_path, data_columns, threshold)
+
+    # Save the translucent log to file system
+    df.to_csv(file_path, sep=";", index=False)
+
+    translucent_log = db.get_or_404(TranslucentEventLog, translucent_log.id)
+
+    # Edit the database entry to mark it as ready
+    translucent_log.is_ready = True
+    db.session.commit()
+
+    return df.to_json()
     
-@app.route("/event-logs/<int:id>/transformer/columns", methods=["GET", "POST"])
+@app.route("/event-logs/<int:id>/transformer", methods=["POST"])
 def event_log_transformer(id):
-    if request.method == "GET":
-        event_log = db.get_or_404(EventLog, id)
-        df = fetch_dataframe(event_log.file_path, event_log.type.value)
-        columns = df.columns.tolist()
-        return jsonify(columns)
-    
-    if request.method == "POST":
-        event_log = db.get_or_404(EventLog, id)
-        base_name, extension = os.path.splitext(event_log.file_path)
-        file_path = os.path.join(base_name + "_translucent_petri_net" + extension)
 
-        # Save to database first
-        translucent_log = TranslucentEventLog(name=event_log.name + "_translucent_transformer", type=EventLogType.CSV, file_path=file_path, is_ready=False, event_log_id=event_log.id)
+    event_log = db.get_or_404(EventLog, id)
+    base_name, extension = os.path.splitext(event_log.file_path)
+    file_path = os.path.join(base_name + "_translucent_transformer" + extension)
 
-        print("created translucent log: ", translucent_log)
-        db.session.add(translucent_log)
-        db.session.commit()
+    # Save to database first
+    translucent_log = TranslucentEventLog(name=event_log.name + "_translucent_transformer", type=EventLogType.CSV, file_path=file_path, is_ready=False, event_log_id=event_log.id)
 
-        # Run algorithm
-        df = fetch_dataframe(event_log.file_path, event_log.type.value)
-        data_columns = request.json.get("columns")
-        threshold = request.json.get("threshold")
-        df = translucify_with_transformer(df, data_columns, threshold)
+    print("created translucent log: ", translucent_log)
+    db.session.add(translucent_log)
+    db.session.commit()
 
+    threshold = request.json.get("threshold")
+    # df = translucify_with_transformer(df, data_columns, threshold)
+
+    # Get csv file
+    with open(event_log.file_path, 'rb') as file:
+        # Create the payload with the file object
+        files = {'file': file}
+        print("Sending request...")
+        # Get translucent log from transformer microservice 
+        response = requests.post("http://127.0.0.1:3000/", files=files, data={'id': str(id), 'threshold': str(threshold)})
+        print("Response in post: ", response)
+        df = pd.read_json(response.text)
+        print("translucnet data frame: ", df)
         # Save the translucent log to file system
         df.to_csv(file_path, sep=";", index=False)
 
@@ -294,7 +319,7 @@ def event_log_transformer(id):
         translucent_log.is_ready = True
         db.session.commit()
 
-        return df.to_json()  
+        return "Transformed event log"
 
 
 @app.route("/event-logs/<int:id>/translucent-logs", methods=["GET"])

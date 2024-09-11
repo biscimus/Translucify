@@ -5,7 +5,7 @@ export const Route = createFileRoute("/")({
     component: () => (
         <>
             <div>Discover Enabled Activities</div>
-            <Link to="/logs">
+            <Link to="/event-logs">
                 <Button>Go to your logs</Button>
             </Link>
         </>
