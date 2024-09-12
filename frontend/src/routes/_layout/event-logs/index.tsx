@@ -1,14 +1,16 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { getEventLogs } from "@lib/queries";
-import { Flex, Loader, Paper, Table, Title } from "@mantine/core";
+import { deleteEventLog, getEventLogs } from "@lib/queries";
+import { ActionIcon, Flex, Loader, Paper, Table, Title } from "@mantine/core";
 import UploadEventLog from "@components/UploadEventLog";
+import { IconTrash } from "@tabler/icons-react";
 
 export const Route = createFileRoute("/_layout/event-logs/")({
     component: () => <LogsComponent />,
 });
 
 function LogsComponent() {
+    const queryClient = useQueryClient();
     const { data, isSuccess, isLoading, isError } = useQuery({
         queryKey: ["event-logs"],
         queryFn: getEventLogs,
@@ -22,12 +24,21 @@ function LogsComponent() {
         });
     };
 
+    const deleteEventLogMutation = useMutation({
+        mutationFn: deleteEventLog,
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: ["event-logs"],
+            });
+        },
+    });
+
     if (isLoading) return <Loader />;
     if (isError) return <>Unexpected error. Please try reloading the page.</>;
     if (isSuccess) {
         return (
             <div>
-                <Paper shadow="xs" p="xl">
+                <Paper shadow="md" p="xl">
                     <Flex justify="space-between">
                         <Title order={3}>All Event Logs</Title>
                         <UploadEventLog>Upload an Event Log</UploadEventLog>
@@ -48,6 +59,21 @@ function LogsComponent() {
                                 >
                                     <Table.Td>{log.name}</Table.Td>
                                     <Table.Td>{log.type}</Table.Td>
+                                    <Table.Td>
+                                        <ActionIcon
+                                            variant="subtle"
+                                            size="sm"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                console.log("deleting!");
+                                                deleteEventLogMutation.mutate(
+                                                    log.id!
+                                                );
+                                            }}
+                                        >
+                                            <IconTrash />
+                                        </ActionIcon>
+                                    </Table.Td>
                                 </Table.Tr>
                             ))}
                         </Table.Tbody>

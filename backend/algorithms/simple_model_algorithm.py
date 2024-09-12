@@ -2,10 +2,8 @@ import argparse
 from math import prod
 import os
 import pandas as pd
-from sqlalchemy import TIMESTAMP
-from .preprocessor import convert_csv_to_xes, preprocess_log, user_select_columns
 from pm4py.objects.log.obj import Trace
-from pm4py import view_petri_net, get_enabled_transitions, discover_petri_net_inductive, read_xes
+from pm4py import get_enabled_transitions, discover_petri_net_inductive, read_xes
 from pandas import DataFrame, Series, read_csv
 from pm4py.objects.petri_net.obj import PetriNet, Marking
 from pm4py.algo.conformance.alignments.petri_net.variants import dijkstra_less_memory
@@ -35,7 +33,8 @@ TIMESTAMP_COLUMN = "time:timestamp"
 
 def discover_translucent_log_from_model(log_filepath: str, data_columns: list[dict[str]], threshold: float) -> DataFrame:
     '''
-    This function discovers a translucent log from a given log file path using a threshold.
+    Discovers a translucent log from a given log file path using a threshold.
+
     :param log_filepath: The file path of the log file.
     :param threshold: The cutoff percentage.
     '''
@@ -53,10 +52,6 @@ def discover_translucent_log_from_model(log_filepath: str, data_columns: list[di
 
     # check dataframe types
     print("DTYPES: ", log.dtypes)
-    # Set time:timestamp to datetime
-    # pd.to_datetime(df["time:timestamp"])
- 
-    print("Changed types: ", log.dtypes)
 
     print("Dataframe from log: \n", log)
     petri_net = discover_petri_net_inductive(log)
@@ -68,23 +63,23 @@ def discover_translucent_log_from_model(log_filepath: str, data_columns: list[di
     print(f"Log data types:\n {log.dtypes}")
     # Choose (or select all) attribute columns
 
-    print("data column: ", [data_column for data_column in data_columns])
+    
     # Preprocess log
     categorical_columns = [data_column["column"] for data_column in data_columns if data_column["type"] == "categorical"]
-
+    print("Categorical columns: ", categorical_columns)
     log = pd.get_dummies(log, columns=categorical_columns, dtype=int)
 
-    # log = preprocess_log(log, selected_columns)
     print(f"Log after preprocessing:\n {log}")
 
-    # # Select all log columns as features as long as their names start with a selected column name (Due to one-hot encoding)
+    # Select all log columns as features as long as their names start with a selected column name (Due to one-hot encoding)
     feature_columns = [column for column in log.columns if any([column.startswith(data_column["column"]) for data_column in data_columns])]
     print(f"Feature Columns:\n {feature_columns}")
 
     observation_instances: ObservationInstances = create_observation_instances(petri_net, log, feature_columns)
-    print(f"Observation Instances:\n {observation_instances}")
+    print("Observation instances: ", observation_instances)
+
     regression_models: RegressionModels = create_regression_models(observation_instances, feature_columns)
-    print(f"Regression Models:\n {regression_models}")
+
     return create_enabled_activities(petri_net, log, regression_models, feature_columns, threshold)
 
 
@@ -141,6 +136,7 @@ def create_observation_instances(petri_net: tuple[PetriNet, Marking, Marking], l
 def create_regression_models(observation_instances: ObservationInstances, feature_columns: list[str]) -> RegressionModels:
     '''
     Receives a dictionary of observation instances and creates a regression model for each transition.
+    
     :param observation_instances: The dictionary of observation instances.
     :param feature_columns: The list of feature columns.
     '''

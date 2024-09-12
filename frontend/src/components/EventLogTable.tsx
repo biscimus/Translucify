@@ -1,9 +1,10 @@
 import { getEventLog } from "@lib/queries";
 import { Loader, Pagination, Space, Stack, Table, Title } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
+import { UUID } from "crypto";
 import { useState } from "react";
 
-export default function EventLogTable({ eventLogId }: { eventLogId: string }) {
+export default function EventLogTable({ eventLogId }: { eventLogId: UUID }) {
     function transposeSimple(data: any) {
         const keys = Object.keys(data[0]); // Get keys from the first object
         return keys.map((key) => data.map((obj: any) => obj[key]));

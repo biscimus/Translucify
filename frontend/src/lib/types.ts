@@ -1,5 +1,7 @@
+import { UUID } from "crypto";
+
 export interface EventLog {
-    id?: number;
+    id?: UUID;
     name: string;
     type: EventLogType;
     value: File | string;
@@ -7,14 +9,14 @@ export interface EventLog {
 }
 
 export interface ProcessModel {
-    id: number;
+    id?: UUID;
     name: string;
     type: ProcessModelType;
     value: File;
 }
 
 export interface TranslucentEventLog {
-    id?: number;
+    id?: UUID;
     name: string;
     type: EventLogType;
     file_path: string;

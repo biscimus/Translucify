@@ -1,6 +1,7 @@
 import EventLogTable from "@components/EventLogTable";
 import TranslucifyButton from "@components/TranslucifyButton";
 import {
+    deleteTranslucentLog,
     getEventLogMetadata,
     getTranslucentLog,
     getTranslucentLogs,
@@ -17,26 +18,27 @@ import {
     Table,
     Title,
 } from "@mantine/core";
-import { IconDownload, IconRefresh } from "@tabler/icons-react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { IconDownload, IconRefresh, IconTrash } from "@tabler/icons-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { UUID } from "crypto";
 
 export const Route = createFileRoute("/_layout/event-logs/$eventLogId/")({
     loader: ({ params, context: { queryClient } }) => {
         return queryClient.ensureQueryData({
             queryKey: ["event-logs", params.eventLogId, "metadata"],
             queryFn: () => {
-                return getEventLogMetadata(params.eventLogId);
+                return getEventLogMetadata(params.eventLogId as UUID);
             },
         });
     },
     component: () => {
         const { eventLogId } = Route.useParams();
-        return <LogDetailComponent eventLogId={eventLogId} />;
+        return <LogDetailComponent eventLogId={eventLogId as UUID} />;
     },
 });
 
-function LogDetailComponent({ eventLogId }: { eventLogId: string }) {
+function LogDetailComponent({ eventLogId }: { eventLogId: UUID }) {
     const { data: eventLogMetadata } = useQuery({
         queryKey: ["event-logs", eventLogId, "metadata"],
         queryFn: () => getEventLogMetadata(eventLogId),
@@ -52,6 +54,15 @@ function LogDetailComponent({ eventLogId }: { eventLogId: string }) {
     } = useQuery({
         queryKey: ["event-logs", eventLogId, "translucent-logs"],
         queryFn: () => getTranslucentLogs(eventLogId),
+    });
+
+    const deleteTranslucentLogMutation = useMutation({
+        mutationFn: deleteTranslucentLog,
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: ["event-logs", eventLogId, "translucent-logs"],
+            });
+        },
     });
 
     return (
@@ -137,6 +148,7 @@ function LogDetailComponent({ eventLogId }: { eventLogId: string }) {
                                     </Table.Td>
                                     <Table.Td>
                                         <ActionIcon
+                                            disabled={!log.is_ready}
                                             variant="subtle"
                                             size="sm"
                                             onClick={async () => {
@@ -169,6 +181,19 @@ function LogDetailComponent({ eventLogId }: { eventLogId: string }) {
                                             }}
                                         >
                                             <IconDownload />
+                                        </ActionIcon>
+                                    </Table.Td>
+                                    <Table.Td>
+                                        <ActionIcon
+                                            variant="subtle"
+                                            size="sm"
+                                            onClick={() =>
+                                                deleteTranslucentLogMutation.mutate(
+                                                    log.id!
+                                                )
+                                            }
+                                        >
+                                            <IconTrash />
                                         </ActionIcon>
                                     </Table.Td>
                                 </Table.Tr>

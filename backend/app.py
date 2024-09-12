@@ -1,6 +1,6 @@
-from sys import prefix
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.dialects.postgresql import UUID
 from flask_cors import CORS
 import sqlalchemy as sql
 from sqlalchemy.orm import mapped_column, Mapped, DeclarativeBase
@@ -11,6 +11,7 @@ from flask_alembic import Alembic
 import csv
 import pandas as pd
 import requests
+import uuid
 
 from algorithms.preprocessor import fetch_dataframe
 from algorithms.simple_model_algorithm import discover_translucent_log_from_model
@@ -47,15 +48,15 @@ class ProcessModelType(enum.Enum):
 
 class EventLog(Base):
     __tablename__ = "log"
-    id: Mapped[int] = mapped_column(primary_key = True)
+    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(sql.String(255))
     type: Mapped[EventLogType] = mapped_column(sql.Enum(EventLogType))
     file_path: Mapped[str] = mapped_column(sql.String)
-    translucnet_event_logs = db.relationship('TranslucentEventLog', backref='event_log')
+    translucnet_event_logs = db.relationship('TranslucentEventLog', cascade="all,delete", backref='event_log')
 
 class TranslucentEventLog(Base):
     __tablename__ = "translucent_log"
-    id: Mapped[int] = mapped_column(primary_key = True)
+    id: Mapped[UUID]= mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(sql.String(255))
     type: Mapped[EventLogType] = mapped_column(sql.Enum(EventLogType))
     file_path: Mapped[str] = mapped_column(sql.String)
@@ -65,7 +66,7 @@ class TranslucentEventLog(Base):
 
 class ProcessModel(Base):
     __tablename__ = "process_model"
-    id: Mapped[int] = mapped_column(primary_key = True)
+    id: Mapped[UUID]= mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(sql.String(255))
     type: Mapped[ProcessModelType] = mapped_column(sql.Enum(ProcessModelType))
     value: Mapped[str] = mapped_column(sql.String)
@@ -83,10 +84,11 @@ def process_models():
     elif request.method == "POST":
         return "Create a new process model", "hey"
 
-@app.route("/process-models/<int:id>", methods=["DELETE"])
+@app.route("/process-models/<uuid:id>", methods=["DELETE"])
 def process_model(id):
     process_model = db.get_or_404(ProcessModel, id)
     db.session.delete(process_model)
+    db.session.commit()
 
     
 @app.route("/event-logs", methods=["GET", "POST"])
@@ -115,7 +117,10 @@ def event_logs():
         print("Delimiter: ", delimiter)
 
         # Save file first
-        file_path = os.path.join("logs", file.filename)
+        # Make subdirectory with file name under logs 
+        os.makedirs(os.path.join("logs", name), exist_ok=True)
+
+        file_path = os.path.join("logs", name, file.filename)
         print("File path: ", file_path)
         file.save(file_path)
 
@@ -149,17 +154,22 @@ def event_logs():
             "columns": columns 
         }
     
-@app.route("/event-logs/<int:id>/metadata", methods=["GET"])
+@app.route("/event-logs/<uuid:id>/metadata", methods=["GET"])
 def event_log_metadata(id):
+
+    print("Event log id in metadata: ", id)
     event_log = db.get_or_404(EventLog, id)
+
+
     return jsonify({
             "id": event_log.id,
             "name": event_log.name,
             "type": event_log.type.value,
         })
     
-@app.route("/event-logs/<int:id>", methods=["GET", "PATCH", "DELETE"])
+@app.route("/event-logs/<uuid:id>", methods=["GET", "PATCH", "DELETE"])
 def event_log(id):
+    print("Event log id in columns: ", id)
     if request.method == "GET":
         event_log = db.get_or_404(EventLog, id)
         # Get file path and send it back
@@ -181,9 +191,12 @@ def event_log(id):
     elif request.method == "DELETE":
         event_log = db.get_or_404(EventLog, id)
         db.session.delete(event_log)
+        db.session.commit()
+        return "Deleted event log"
 
-@app.route("/event-logs/<int:id>/columns", methods=["PATCH", "GET"])
+@app.route("/event-logs/<uuid:id>/columns", methods=["PATCH", "GET"])
 def event_log_columns(id):
+    print("Event log id in columns: ", id)
     if request.method == "GET":
         event_log = db.get_or_404(EventLog, id)
         df = fetch_dataframe(event_log.file_path, event_log.type.value)
@@ -209,7 +222,7 @@ def event_log_columns(id):
 
         return "Update columns for event log"
 
-@app.route("/event-logs/<int:id>/prefix-automaton", methods=["GET", "POST"])
+@app.route("/event-logs/<uuid:id>/prefix-automaton", methods=["GET", "POST"])
 def prefix_automaton(id):
     if request.method == "GET":
         print("Getting prefix automaton")
@@ -254,7 +267,7 @@ def prefix_automaton(id):
         return df.to_json()
 
 
-@app.route("/event-logs/<int:id>/petri-net", methods=["POST"])
+@app.route("/event-logs/<uuid:id>/petri-net", methods=["POST"])
 def event_log_petri_net(id):
     body = request.json
     data_columns = body.get("columns")
@@ -283,7 +296,7 @@ def event_log_petri_net(id):
 
     return df.to_json()
     
-@app.route("/event-logs/<int:id>/transformer", methods=["POST"])
+@app.route("/event-logs/<uuid:id>/transformer", methods=["POST"])
 def event_log_transformer(id):
 
     event_log = db.get_or_404(EventLog, id)
@@ -322,7 +335,7 @@ def event_log_transformer(id):
         return "Transformed event log"
 
 
-@app.route("/event-logs/<int:id>/translucent-logs", methods=["GET"])
+@app.route("/event-logs/<uuid:id>/translucent-logs", methods=["GET"])
 def translucent_logs(id):
     translucent_logs = db.session.execute(db.select(TranslucentEventLog).filter_by(event_log_id=id)).scalars()
 
@@ -335,10 +348,16 @@ def translucent_logs(id):
     } for log in translucent_logs]
     return jsonify(log_dicts)
 
-@app.route("/translucent-event-logs/<int:id>", methods=["Get"])
+@app.route("/translucent-event-logs/<uuid:id>", methods=["GET", "DELETE"])
 def translucent_log(id):
-    translucent_log = db.get_or_404(TranslucentEventLog, id)
-    file_path = translucent_log.file_path
-    print("file path: ", file_path)
-    
-    return send_file(file_path, as_attachment=True)
+    if request.method == "GET":
+        translucent_log = db.get_or_404(TranslucentEventLog, id)
+        file_path = translucent_log.file_path
+        print("file path: ", file_path)
+        
+        return send_file(file_path, as_attachment=True)
+    elif request.method == "DELETE":
+        translucent_log = db.get_or_404(TranslucentEventLog, id)
+        db.session.delete(translucent_log)
+        db.session.commit()
+        return "Deleted translucent log"

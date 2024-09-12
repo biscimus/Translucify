@@ -66,7 +66,6 @@ export default function UploadEventLogButton({
         },
     });
 
-    console.log(delimiter);
     return (
         <>
             <Button onClick={open}>{children}</Button>

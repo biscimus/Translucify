@@ -1,16 +1,17 @@
 import { ColumnDefinition } from "src/routes/_layout/event-logs/$eventLogId/petri-net";
 import axios from "./axios";
 import { EventLog } from "./types";
+import { UUID } from "crypto";
 
 export async function getEventLogs() {
     return (await axios.get<EventLog[]>("/event-logs")).data;
 }
 
-export async function getEventLog(eventLogId: string) {
+export async function getEventLog(eventLogId: UUID) {
     return (await axios.get<EventLog>(`/event-logs/${eventLogId}`)).data;
 }
 
-export async function getEventLogMetadata(eventLogId: string) {
+export async function getEventLogMetadata(eventLogId: UUID) {
     return (await axios.get(`/event-logs/${eventLogId}/metadata`)).data;
 }
 
@@ -27,7 +28,7 @@ export async function patchColumns({
     eventLogId,
     columns,
 }: {
-    eventLogId: string;
+    eventLogId: UUID;
     columns: {
         caseId: string;
         activity: string;
@@ -38,7 +39,7 @@ export async function patchColumns({
         .data;
 }
 
-export async function getEventLogColumns(eventLogId: string) {
+export async function getEventLogColumns(eventLogId: UUID) {
     return (await axios.get<string[]>(`/event-logs/${eventLogId}/columns`))
         .data;
 }
@@ -48,7 +49,7 @@ export async function postTranslucentPetriNet({
     columns,
     threshold,
 }: {
-    eventLogId: string;
+    eventLogId: UUID;
     columns: ColumnDefinition[];
     threshold: number;
 }) {
@@ -60,7 +61,7 @@ export async function postTranslucentPetriNet({
     ).data;
 }
 
-export async function getTransluscentPrefixAutomaton(eventLogId: string) {
+export async function getTransluscentPrefixAutomaton(eventLogId: UUID) {
     return (await axios.get(`/event-logs/${eventLogId}/prefix-automaton`)).data;
 }
 
@@ -71,7 +72,7 @@ export async function postTranslucentPrefixAutomaton({
     selectedColumns,
     threshold,
 }: {
-    eventLogId: string;
+    eventLogId: UUID;
     states: any[];
     transitions: any[];
     selectedColumns: any[];
@@ -87,11 +88,11 @@ export async function postTranslucentPrefixAutomaton({
     ).data;
 }
 
-export async function getTranslucentLogs(eventLogId: string) {
+export async function getTranslucentLogs(eventLogId: UUID) {
     return (await axios.get(`/event-logs/${eventLogId}/translucent-logs`)).data;
 }
 
-export async function getTranslucentLog(translucentLogId: number) {
+export async function getTranslucentLog(translucentLogId: UUID) {
     const response = await axios.get(
         `/translucent-event-logs/${translucentLogId}`,
         {
@@ -108,7 +109,7 @@ export async function postTransluscnetTransformer({
     columns,
     threshold,
 }: {
-    eventLogId: string;
+    eventLogId: UUID;
     columns: string[];
     threshold: number;
 }) {
@@ -118,4 +119,13 @@ export async function postTransluscnetTransformer({
             columns,
         })
     ).data;
+}
+
+export async function deleteEventLog(eventLogId: UUID) {
+    return (await axios.delete(`/event-logs/${eventLogId}`)).data;
+}
+
+export async function deleteTranslucentLog(translucentLogId: UUID) {
+    return (await axios.delete(`/translucent-event-logs/${translucentLogId}`))
+        .data;
 }
