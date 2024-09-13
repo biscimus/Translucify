@@ -1,4 +1,4 @@
-# Translucifer: A Translucent Log Generation Algorithm
+# Translucify: A Translucent Log Generation Algorithm
 
 ### Using HPC
 
