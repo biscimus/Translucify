@@ -27,6 +27,9 @@ export default function UploadEventLogButton({
     // Modal state
     const [opened, { open, close }] = useDisclosure(false);
 
+    const [uploadButtonLoading, { toggle: uploadButtonToggle }] =
+        useDisclosure();
+
     // Stepper state
     const [active, setActive] = useState(0);
     const nextStep = () =>
@@ -46,6 +49,7 @@ export default function UploadEventLogButton({
         onSuccess: (data) => {
             console.log("Success: ", data);
             setColumns(data.columns);
+            uploadButtonToggle();
             nextStep();
         },
     });
@@ -83,16 +87,17 @@ export default function UploadEventLogButton({
                             />
                             <FileInput
                                 required
-                                onChange={(file) => setFile(file)}
+                                onChange={setFile}
                                 label="Event Log Data"
                                 description="We currently only accept CSV and XES files. The CSV file must be delimited with semicolons."
                             />
                             <Checkbox
                                 checked={isChecked}
+                                disabled={!file?.name.endsWith(".csv")}
                                 onChange={(event) =>
                                     setIsChecked(event.currentTarget.checked)
                                 }
-                                label="I'm using a different delimiter"
+                                label="I'm using a different delimiter for the CSV file"
                             />
                             {isChecked ? (
                                 <TextInput
@@ -100,12 +105,14 @@ export default function UploadEventLogButton({
                                     onChange={(e) =>
                                         setDelimiter(e.target.value)
                                     }
-                                    value={delimiter}
                                 />
                             ) : null}
 
                             <Button
+                                disabled={!file || !name}
+                                loading={uploadButtonLoading}
                                 onClick={() => {
+                                    uploadButtonToggle();
                                     fileMutation.mutate({
                                         name: name,
                                         type: file?.name.endsWith(".csv")
@@ -120,55 +127,58 @@ export default function UploadEventLogButton({
                             </Button>
                         </Flex>
                     </Stepper.Step>
-                    <Stepper.Step
-                        label="Second Step"
-                        description="Select your Columns"
-                    >
-                        <Flex direction="column" gap="sm">
-                            <Select
-                                required
-                                label="Case ID"
-                                placeholder="Enter Case ID Column"
-                                value={caseId}
-                                onChange={setCaseId}
-                                data={columns}
-                            />
-                            <Select
-                                required
-                                label="Activity Label"
-                                placeholder="Enter Activity Column"
-                                value={activity}
-                                onChange={setActivity}
-                                data={columns}
-                            />
-                            <Select
-                                required
-                                label="Timestamp"
-                                placeholder="Enter Timestamp Column"
-                                value={timestamp}
-                                onChange={setTimestamp}
-                                data={columns}
-                            />
-                            <Button
-                                onClick={() => {
-                                    columnMutation.mutate({
-                                        eventLogId: fileMutation.data?.id!,
-                                        columns: {
-                                            caseId,
-                                            activity,
-                                            timestamp,
-                                        } as {
-                                            caseId: string;
-                                            activity: string;
-                                            timestamp: string;
-                                        },
-                                    });
-                                }}
-                            >
-                                Submit
-                            </Button>
-                        </Flex>
-                    </Stepper.Step>
+                    {file?.name.endsWith(".csv") && (
+                        <Stepper.Step
+                            label="Second Step"
+                            description="Select your Columns"
+                        >
+                            <Flex direction="column" gap="sm">
+                                <Select
+                                    required
+                                    label="Case ID"
+                                    placeholder="Enter Case ID Column"
+                                    value={caseId}
+                                    onChange={setCaseId}
+                                    data={columns}
+                                />
+                                <Select
+                                    required
+                                    label="Activity Label"
+                                    placeholder="Enter Activity Column"
+                                    value={activity}
+                                    onChange={setActivity}
+                                    data={columns}
+                                />
+                                <Select
+                                    required
+                                    label="Timestamp"
+                                    placeholder="Enter Timestamp Column"
+                                    value={timestamp}
+                                    onChange={setTimestamp}
+                                    data={columns}
+                                />
+                                <Button
+                                    onClick={() => {
+                                        columnMutation.mutate({
+                                            eventLogId: fileMutation.data?.id!,
+                                            columns: {
+                                                caseId,
+                                                activity,
+                                                timestamp,
+                                            } as {
+                                                caseId: string;
+                                                activity: string;
+                                                timestamp: string;
+                                            },
+                                        });
+                                    }}
+                                >
+                                    Submit
+                                </Button>
+                            </Flex>
+                        </Stepper.Step>
+                    )}
+
                     <Stepper.Completed>
                         <Stack>
                             Event Log ready to be translucified!

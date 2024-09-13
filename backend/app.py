@@ -12,15 +12,39 @@ import csv
 import pandas as pd
 import requests
 import uuid
+from celery import Celery, Task
 
 from algorithms.preprocessor import fetch_dataframe
 from algorithms.simple_model_algorithm import discover_translucent_log_from_model
 from algorithms.simple_prefix_automaton import discover_translucent_log_from_pa, generate_prefix_automaton
 from algorithms.postprocessor import decode_prefix_automaton, encode_prefix_automaton
 
+# Celery configuration
+def celery_init_app(app: Flask) -> Celery:
+    class FlaskTask(Task):
+        def __call__(self, *args: object, **kwargs: object) -> object:
+            with app.app_context():
+                return self.run(*args, **kwargs)
+
+    celery_app = Celery(app.name, task_cls=FlaskTask)
+    celery_app.config_from_object(app.config["CELERY"])
+    celery_app.set_default()
+    app.extensions["celery"] = celery_app
+    return celery_app
+
 # Init app
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///project.db'
+
+# Add Celery
+app.config.from_mapping(
+    CELERY=dict(
+        broker_url="redis://localhost:6379/0",
+        result_backend="redis://localhost:6379/0",
+        task_ignore_result=True,
+    ),
+)
+celery_app = celery_init_app(app)
 
 # Enable CORS
 cors = CORS(app)
@@ -176,8 +200,11 @@ def event_log(id):
         print("File path: ", event_log.file_path)
         df = fetch_dataframe(event_log.file_path, event_log.type.value)
 
+        # Put Columns case:concept:name, concept:name, time:timestamp in front
+        priority_columns = ["case:concept:name", "concept:name", "time:timestamp"]
+        df = df[priority_columns + [col for col in df.columns if col not in priority_columns]]
+
         df_json = df.to_json()
-        
         result = jsonify({
             "id": event_log.id,
             "name": event_log.name,
