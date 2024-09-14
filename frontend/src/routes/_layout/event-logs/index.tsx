@@ -1,9 +1,23 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { deleteEventLog, getEventLogs } from "@lib/queries";
-import { ActionIcon, Flex, Loader, Paper, Table, Title } from "@mantine/core";
+import {
+    ActionIcon,
+    Flex,
+    Loader,
+    Modal,
+    Paper,
+    Table,
+    Title,
+    Text,
+    Group,
+    Button,
+} from "@mantine/core";
 import UploadEventLog from "@components/UploadEventLog";
 import { IconTrash } from "@tabler/icons-react";
+import { useDisclosure } from "@mantine/hooks";
+import { useState } from "react";
+import { UUID } from "crypto";
 
 export const Route = createFileRoute("/_layout/event-logs/")({
     component: () => <LogsComponent />,
@@ -33,11 +47,36 @@ function LogsComponent() {
         },
     });
 
+    const [opened, { open, close }] = useDisclosure(false);
+    const [deleteLogId, setDeleteLogId] = useState<UUID | null>(null);
+
     if (isLoading) return <Loader />;
     if (isError) return <>Unexpected error. Please try reloading the page.</>;
     if (isSuccess) {
         return (
             <div>
+                <Modal
+                    opened={opened}
+                    onClose={close}
+                    title="Delete Event Log?"
+                >
+                    <Text>
+                        All event log data & corresponding translucent logs will
+                        be deleted!
+                    </Text>
+                    <Group justify="end">
+                        <Button onClick={close}>Cancel</Button>
+                        <Button
+                            color="red"
+                            onClick={() => {
+                                deleteEventLogMutation.mutate(deleteLogId!);
+                                close();
+                            }}
+                        >
+                            Delete
+                        </Button>
+                    </Group>
+                </Modal>
                 <Paper shadow="md" p="xl">
                     <Flex justify="space-between">
                         <Title order={3}>All Event Logs</Title>
@@ -64,11 +103,10 @@ function LogsComponent() {
                                             variant="subtle"
                                             size="sm"
                                             onClick={(e) => {
+                                                open();
                                                 e.stopPropagation();
-                                                console.log("deleting!");
-                                                deleteEventLogMutation.mutate(
-                                                    log.id!
-                                                );
+
+                                                setDeleteLogId(log.id!);
                                             }}
                                         >
                                             <IconTrash />
@@ -92,5 +130,4 @@ function LogsComponent() {
             </div>
         );
     }
-    return <>Helo</>;
 }

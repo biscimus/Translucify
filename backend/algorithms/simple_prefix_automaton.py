@@ -8,7 +8,9 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from .preprocessor import import_csv
 import pandas as pd
+from pm4py import read_xes
 from .transition_system import TransitionSystem, State, Transition
+from pm4py.objects.log.util.dataframe_utils import convert_timestamp_columns_in_df
 
 ACTIVITY_COLUMN = "concept:name"
 CASE_COLUMN = "case:concept:name"
@@ -88,7 +90,19 @@ def fill_enabled_activities(log: pd.DataFrame, prefix_automaton: TransitionSyste
 
 # Multivariate Logistic Regression with Prefix Automaton
 
-def discover_translucent_log_from_pa(log: pd.DataFrame, prefix_automaton: TransitionSystem, selected_columns: list[dict[str]], threshold=0.1):
+def discover_translucent_log_from_pa(log_filepath: str, prefix_automaton: TransitionSystem, selected_columns: list[dict[str]], threshold=0.1):
+
+    # If log flie is a CSV file, import it as a DataFrame
+    # Else if log file is a XES file, import it as a log object
+    if log_filepath.endswith(".csv"):
+        log = pd.read_csv(log_filepath, sep=";")
+
+        print("Event log from CSV: \n", log)
+        log = convert_timestamp_columns_in_df(log)
+        log[CASE_COLUMN] = log[CASE_COLUMN].astype("string")
+    else:
+        log = read_xes(log_filepath)
+
     # TODO: incorporate feature columns
     categorical_columns = [data_column["column"] for data_column in selected_columns if data_column["type"] == "categorical"]
 

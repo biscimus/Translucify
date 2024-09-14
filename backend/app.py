@@ -12,12 +12,14 @@ import csv
 import pandas as pd
 import requests
 import uuid
-from celery import Celery, Task
+from celery import Celery, Task, shared_task
+import shutil
 
 from algorithms.preprocessor import fetch_dataframe
-from algorithms.simple_model_algorithm import discover_translucent_log_from_model
 from algorithms.simple_prefix_automaton import discover_translucent_log_from_pa, generate_prefix_automaton
 from algorithms.postprocessor import decode_prefix_automaton, encode_prefix_automaton
+from algorithms.simple_model_algorithm import discover_translucent_log_from_model
+from tasks import process_translucent_log_from_petri_net
 
 # Celery configuration
 def celery_init_app(app: Flask) -> Celery:
@@ -44,7 +46,9 @@ app.config.from_mapping(
         task_ignore_result=True,
     ),
 )
-celery_app = celery_init_app(app)
+
+# Use command "celery -A app.celery worker --loglevel INFO" to start the worker
+celery = celery_init_app(app)
 
 # Enable CORS
 cors = CORS(app)
@@ -216,9 +220,20 @@ def event_log(id):
     elif request.method == "PATCH":
         return "Update event log"
     elif request.method == "DELETE":
+
+        # Delete event log entity from database & log folder
         event_log = db.get_or_404(EventLog, id)
+
+        # Remove directory with the same name as the event log in the logs subdirectory
+        try:
+            shutil.rmtree(os.path.join("logs", event_log.name))
+        except FileNotFoundError:
+            print("Directory not found")
         db.session.delete(event_log)
         db.session.commit()
+
+
+
         return "Deleted event log"
 
 @app.route("/event-logs/<uuid:id>/columns", methods=["PATCH", "GET"])
@@ -252,12 +267,9 @@ def event_log_columns(id):
 @app.route("/event-logs/<uuid:id>/prefix-automaton", methods=["GET", "POST"])
 def prefix_automaton(id):
     if request.method == "GET":
-        print("Getting prefix automaton")
         event_log = db.get_or_404(EventLog, id)
         df = fetch_dataframe(event_log.file_path, event_log.type.value)
         prefix_automaton = generate_prefix_automaton(df)
-        print("States: ", prefix_automaton.states)
-        print("Transitions: ", prefix_automaton.transitions)
         payload = encode_prefix_automaton(prefix_automaton)
         return jsonify(payload)
     elif request.method == "POST":
@@ -270,28 +282,34 @@ def prefix_automaton(id):
         translucent_log = TranslucentEventLog(name=event_log.name + "_translucent_prefix_automaton", type=EventLogType.CSV, file_path=file_path, is_ready=False, event_log_id=event_log.id)
         db.session.add(translucent_log)
         db.session.commit()
-
-        df = fetch_dataframe(event_log.file_path, event_log.type.value)
+        
         body = request.json
-        print("Body for post prefix automaton: ", body)
         states = body.get("states")
         transitions = body.get("transitions")
         threshold = body.get("threshold")
         selected_columns = body.get("selectedColumns")
-        prefix_automaton = decode_prefix_automaton(states, transitions)
-        df = discover_translucent_log_from_pa(df, prefix_automaton, selected_columns, threshold)
+        process_translucent_log_from_prefix_automaton.delay(event_log.file_path, states, transitions, threshold, selected_columns, translucent_log.id, translucent_log.file_path)
 
+        return jsonify({
+        "message": "Translucent Log Generation (Prefix Automaton) in progress",
+        "translucent_log_id": translucent_log.id
+        }), 202
+        
+@shared_task
+def process_translucent_log_from_prefix_automaton(file_path, states, transitions, threshold, selected_columns, translucent_log_id, translucent_log_file_path):
+    prefix_automaton = decode_prefix_automaton(states, transitions)
+    df = discover_translucent_log_from_pa(file_path, prefix_automaton, selected_columns, threshold)
 
-        # Save the translucent log to file system
-        df.to_csv(file_path, sep=";", index=False)
+    # Save the translucent log to file system
+    df.to_csv(translucent_log_file_path, sep=";", index=False)
 
-        translucent_log = db.get_or_404(TranslucentEventLog, translucent_log.id)
+    translucent_log = db.get_or_404(TranslucentEventLog, translucent_log_id)
 
-        # Edit the database entry to mark it as ready
-        translucent_log.is_ready = True
-        db.session.commit()
+    # Edit the database entry to mark it as ready
+    translucent_log.is_ready = True
+    db.session.commit()
 
-        return df.to_json()
+    return df.to_json()
 
 
 @app.route("/event-logs/<uuid:id>/petri-net", methods=["POST"])
@@ -310,18 +328,29 @@ def event_log_petri_net(id):
     db.session.add(translucent_log)
     db.session.commit()
 
-    df = discover_translucent_log_from_model(event_log.file_path, data_columns, threshold)
+    process_translucent_log_from_petri_net.delay(event_log.file_path, data_columns, threshold, translucent_log.id, translucent_log.file_path)
+
+    return jsonify({
+        "message": "Translucent Petri Net generation in progress",
+        "translucent_log_id": translucent_log.id
+    }), 202
+
+@shared_task
+def process_translucent_log_from_petri_net(file_path, data_columns, threshold, translucent_log_id, translucent_log_file_path):
+
+    # Perform the long-running task
+    df = discover_translucent_log_from_model(file_path, data_columns, threshold)
 
     # Save the translucent log to file system
-    df.to_csv(file_path, sep=";", index=False)
+    df.to_csv(translucent_log_file_path, sep=";", index=False)
 
-    translucent_log = db.get_or_404(TranslucentEventLog, translucent_log.id)
-
-    # Edit the database entry to mark it as ready
+    # Mark the translucent log as ready in the database
+    translucent_log = db.get_or_404(TranslucentEventLog, translucent_log_id)
     translucent_log.is_ready = True
     db.session.commit()
 
-    return df.to_json()
+    return translucent_log.id
+
     
 @app.route("/event-logs/<uuid:id>/transformer", methods=["POST"])
 def event_log_transformer(id):
