@@ -16,6 +16,7 @@ import {
 } from "src/routes/_layout/event-logs/$eventLogId/petri-net";
 
 export default function RegressionConfiguration({
+    title,
     columns,
     selectedColumns,
     setSelectedColumns,
@@ -26,6 +27,7 @@ export default function RegressionConfiguration({
     translucifyFunction,
     buttonText = "Discover Translucent Log",
 }: {
+    title: string;
     columns: any[];
     selectedColumns: ColumnDefinition[];
     setSelectedColumns: React.Dispatch<
@@ -40,7 +42,7 @@ export default function RegressionConfiguration({
 }) {
     return (
         <div style={{ padding: "2rem" }}>
-            <Title order={2}>Regression Configuration</Title>
+            <Title order={2}>{title}</Title>
             <Space h="xl" />
             <Title order={4}>Choose Your Model</Title>
             <Space h="xs" />

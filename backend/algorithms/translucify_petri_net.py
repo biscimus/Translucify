@@ -11,7 +11,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 import numpy as np
-from anytree import Node, RenderTree
+from anytree import Node
 from .custom_logger import get_logger_by_flie_path
 from pm4py.objects.log.util.dataframe_utils import convert_timestamp_columns_in_df
 

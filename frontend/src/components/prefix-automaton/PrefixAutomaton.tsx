@@ -7,6 +7,7 @@ import {
     addEdge,
     MarkerType,
     Panel,
+    BackgroundVariant,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useCallback, useMemo, useState } from "react";
@@ -105,7 +106,7 @@ export default function PrefixAutomaton({
             target: currState.id,
             label: transition.name,
             type: "PAEdge",
-            animated: true,
+            animated: false,
             markerEnd: {
                 type: MarkerType.ArrowClosed,
                 width: 15,
@@ -254,7 +255,7 @@ export default function PrefixAutomaton({
                             Merge States
                         </Button>
                     </Panel>
-                    <Background variant="dots" />
+                    <Background variant={BackgroundVariant.Dots} />
                     <Controls />
                 </ReactFlow>
             </div>

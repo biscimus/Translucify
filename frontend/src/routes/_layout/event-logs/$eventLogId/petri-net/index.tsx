@@ -68,6 +68,7 @@ function PetriNetComponent({ eventLogId }: { eventLogId: UUID }) {
     if (isSuccess)
         return (
             <RegressionConfiguration
+                title={"Petri Net Configuration"}
                 columns={columns}
                 selectedColumns={selectedColumns}
                 setSelectedColumns={setSelectedColumns}

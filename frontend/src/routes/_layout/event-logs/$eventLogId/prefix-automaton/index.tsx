@@ -71,6 +71,7 @@ function PrefixAutomatonComponent({ eventLogId }: { eventLogId: UUID }) {
                     {isColumnsError && <div>Error fetching data</div>}
                     {isColumnsSuccess && (
                         <RegressionConfiguration
+                            title={"Prefix Automaton Configuration"}
                             columns={columns}
                             selectedColumns={selectedColumns}
                             setSelectedColumns={setSelectedColumns}
