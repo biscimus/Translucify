@@ -225,12 +225,3 @@ def create_enabled_activities(petri_net: tuple[PetriNet, Marking, Marking], log:
 
     return log.groupby(CASE_COLUMN, group_keys=False).apply(fill_enabled_activities_column).reset_index()
 
-
-if __name__ == "__main__":
-
-    parser = argparse.ArgumentParser("simple_example")
-    parser.add_argument("threshold", help="The cutoff percentage.", type=float)
-    threshold = parser.parse_args().threshold
-
-    log = discover_translucent_log_from_model("../logs/sldpn_log.csv", threshold=threshold)
-    print("RESULT:\n", log)

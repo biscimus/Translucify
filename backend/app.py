@@ -16,10 +16,9 @@ from celery import Celery, Task, shared_task
 import shutil
 
 from algorithms.preprocessor import fetch_dataframe
-from algorithms.simple_prefix_automaton import discover_translucent_log_from_pa, generate_prefix_automaton
+from backend.algorithms.translucify_prefix_automaton import discover_translucent_log_from_pa, generate_prefix_automaton
 from algorithms.postprocessor import decode_prefix_automaton, encode_prefix_automaton
-from algorithms.simple_model_algorithm import discover_translucent_log_from_model
-from tasks import process_translucent_log_from_petri_net
+from backend.algorithms.translucify_petri_net import discover_translucent_log_from_model
 
 # Celery configuration
 def celery_init_app(app: Flask) -> Celery:
@@ -44,6 +43,7 @@ app.config.from_mapping(
         broker_url="redis://localhost:6379/0",
         result_backend="redis://localhost:6379/0",
         task_ignore_result=True,
+        broker_connection_retry_on_startup = True
     ),
 )
 
@@ -110,7 +110,7 @@ def process_models():
         rows = db.session.execute(db.select(ProcessModel)).scalars().all()
         return jsonify(rows)
     elif request.method == "POST":
-        return "Create a new process model", "hey"
+        return "Create a new process model"
 
 @app.route("/process-models/<uuid:id>", methods=["DELETE"])
 def process_model(id):
@@ -232,8 +232,6 @@ def event_log(id):
         db.session.delete(event_log)
         db.session.commit()
 
-
-
         return "Deleted event log"
 
 @app.route("/event-logs/<uuid:id>/columns", methods=["PATCH", "GET"])
@@ -264,6 +262,7 @@ def event_log_columns(id):
 
         return "Update columns for event log"
 
+# Should get a "method" parameter to determine which method to use: logistic regression or random forest
 @app.route("/event-logs/<uuid:id>/prefix-automaton", methods=["GET", "POST"])
 def prefix_automaton(id):
     if request.method == "GET":
@@ -311,7 +310,7 @@ def process_translucent_log_from_prefix_automaton(file_path, states, transitions
 
     return df.to_json()
 
-
+# Should get a "method" parameter to determine which method to use: logistic regression or random forest
 @app.route("/event-logs/<uuid:id>/petri-net", methods=["POST"])
 def event_log_petri_net(id):
     body = request.json
@@ -362,12 +361,19 @@ def event_log_transformer(id):
     # Save to database first
     translucent_log = TranslucentEventLog(name=event_log.name + "_translucent_transformer", type=EventLogType.CSV, file_path=file_path, is_ready=False, event_log_id=event_log.id)
 
-    print("created translucent log: ", translucent_log)
+    
     db.session.add(translucent_log)
     db.session.commit()
 
+    print("created translucent log id: ", translucent_log.id)
+
+    print("request in json: ", request.json)
+
     threshold = request.json.get("threshold")
     # df = translucify_with_transformer(df, data_columns, threshold)
+
+    # Forward the request to the transformer microservice with:
+    # ssh -L 3000:localhost:5000 geonho@137.226.117.2
 
     # Get csv file
     with open(event_log.file_path, 'rb') as file:
@@ -375,20 +381,33 @@ def event_log_transformer(id):
         files = {'file': file}
         print("Sending request...")
         # Get translucent log from transformer microservice 
-        response = requests.post("http://127.0.0.1:3000/", files=files, data={'id': str(id), 'threshold': str(threshold)})
-        print("Response in post: ", response)
-        df = pd.read_json(response.text)
-        print("translucnet data frame: ", df)
-        # Save the translucent log to file system
-        df.to_csv(file_path, sep=";", index=False)
+        requests.post("http://127.0.0.1:3000/", files=files, data={'id': str(translucent_log.id), 'threshold': str(threshold)})
 
-        translucent_log = db.get_or_404(TranslucentEventLog, translucent_log.id)
+        return "requested transformer translucent event log"
+    
+@app.route("/translucent-event-logs/<uuid:id>/callback", methods=["POST"])
+def transformer_callback(id):
+    # Save received translucent event log to system
 
-        # Edit the database entry to mark it as ready
-        translucent_log.is_ready = True
-        db.session.commit()
+    print("We're in boys!")
+    translucent_log_entity = db.get_or_404(TranslucentEventLog, id)
 
-        return "Transformed event log"
+    print("translucnet log entity file path: ", translucent_log_entity.file_path)
+    event_log = db.get_or_404(EventLog, translucent_log_entity.event_log_id)
+
+    base_name, extension = os.path.splitext(event_log.file_path)
+    file_path = os.path.join(base_name + "_translucent_transformer" + extension)
+
+    file = request.files.get("file")
+
+    file.save(file_path)
+    
+    # Set is_ready to True
+
+    translucent_log_entity.is_ready = True
+    db.session.commit()
+
+    return "Saved translucent log from transformer"
 
 
 @app.route("/event-logs/<uuid:id>/translucent-logs", methods=["GET"])

@@ -25,7 +25,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         <>
             <MantineProvider defaultColorScheme="dark">
                 <Outlet />
-                <TanStackRouterDevtools />
+                {/* <TanStackRouterDevtools /> */}
             </MantineProvider>
         </>
     ),

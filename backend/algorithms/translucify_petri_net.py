@@ -15,10 +15,6 @@ from anytree import Node, RenderTree
 from .custom_logger import get_logger_by_flie_path
 from pm4py.objects.log.util.dataframe_utils import convert_timestamp_columns_in_df
 
-
-# logger = get_logger_by_flie_path('../logs/multivariate_regression.log')
-# print = logger.debug
-
 # Define DataState as type for dict[str, float]
 DataState = dict[str, float]
 Activity = str
@@ -252,13 +248,3 @@ def create_enabled_activities(petri_net: tuple[PetriNet, Marking, Marking], log:
         return group
 
     return log.groupby(CASE_COLUMN, group_keys=False).apply(fill_enabled_activities_column).reset_index()
-
-
-if __name__ == "__main__":
-
-    parser = argparse.ArgumentParser("simple_example")
-    parser.add_argument("threshold", help="The cutoff percentage.", type=float)
-    threshold = parser.parse_args().threshold
-
-    # log = discover_translucent_log_from_model("../logs/Road_Traffic_Fine.xes", data_columns, threshold)
-    # print("RESULT:\n", log)

@@ -60,7 +60,7 @@ export default function TranslucifyButton() {
                         <div>
                             <Text>Prefix Automaton</Text>
                             <Text size="xs" c="dimmed">
-                                Let's see how the BA goes!
+                                Equipped with manually customizable states
                             </Text>
                         </div>
                     </Menu.Item>

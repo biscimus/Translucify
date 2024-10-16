@@ -44,7 +44,7 @@ export default function EventLogTable({ eventLogId }: { eventLogId: UUID }) {
                 <Space h="xs" />
 
                 <Table.ScrollContainer minWidth={200}>
-                    <Table>
+                    <Table stickyHeader>
                         <Table.Thead>
                             <Table.Tr>
                                 {Object.keys(logData).map((key) => (

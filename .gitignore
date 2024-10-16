@@ -35,7 +35,6 @@ yarn-error.log*
 backend/instance/*
 
 # Transformer checkpoints
-backend/algorithms/
 backend/algorithms/runs/*
 backend/algorithms/checkpoint*/**
 backend/algorithms/checkpoint*/**
