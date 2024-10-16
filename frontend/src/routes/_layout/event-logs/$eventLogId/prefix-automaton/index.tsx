@@ -10,17 +10,18 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { ColumnDefinition } from "../petri-net";
+import { UUID } from "crypto";
 
 export const Route = createFileRoute(
     "/_layout/event-logs/$eventLogId/prefix-automaton/"
 )({
     component: () => {
         const { eventLogId } = Route.useParams();
-        return <PrefixAutomatonComponent eventLogId={eventLogId} />;
+        return <PrefixAutomatonComponent eventLogId={eventLogId as UUID} />;
     },
 });
 
-function PrefixAutomatonComponent({ eventLogId }: { eventLogId: string }) {
+function PrefixAutomatonComponent({ eventLogId }: { eventLogId: UUID }) {
     // Stepper state
     const [active, setActive] = useState(0);
     const nextStep = () =>
@@ -30,6 +31,7 @@ function PrefixAutomatonComponent({ eventLogId }: { eventLogId: string }) {
         []
     );
     const [threshold, setThreshold] = useState(0);
+    const [method, setMethod] = useState("logistic_regression");
 
     const {
         data: paData,
@@ -74,6 +76,8 @@ function PrefixAutomatonComponent({ eventLogId }: { eventLogId: string }) {
                             setSelectedColumns={setSelectedColumns}
                             threshold={threshold}
                             setThreshold={setThreshold}
+                            method={method}
+                            setMethod={setMethod}
                             translucifyFunction={() => {
                                 nextStep();
                             }}
@@ -94,6 +98,7 @@ function PrefixAutomatonComponent({ eventLogId }: { eventLogId: string }) {
                             eventLogId={eventLogId}
                             prefixAutomatonMutation={prefixAutomatonMutation}
                             selectedColumns={selectedColumns}
+                            method={method}
                             threshold={threshold}
                         />
                     )}

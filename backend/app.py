@@ -16,9 +16,9 @@ from celery import Celery, Task, shared_task
 import shutil
 
 from algorithms.preprocessor import fetch_dataframe
-from backend.algorithms.translucify_prefix_automaton import discover_translucent_log_from_pa, generate_prefix_automaton
+from algorithms.translucify_prefix_automaton import translucify_prefix_automaton, generate_prefix_automaton
 from algorithms.postprocessor import decode_prefix_automaton, encode_prefix_automaton
-from backend.algorithms.translucify_petri_net import discover_translucent_log_from_model
+from algorithms.translucify_petri_net import translucify_petri_net
 
 # Celery configuration
 def celery_init_app(app: Flask) -> Celery:
@@ -287,7 +287,9 @@ def prefix_automaton(id):
         transitions = body.get("transitions")
         threshold = body.get("threshold")
         selected_columns = body.get("selectedColumns")
-        process_translucent_log_from_prefix_automaton.delay(event_log.file_path, states, transitions, threshold, selected_columns, translucent_log.id, translucent_log.file_path)
+        method = body.get("method")
+        print("Method in prefix automaton: ", method)
+        process_translucent_log_from_prefix_automaton.delay(event_log.file_path, states, transitions, threshold, selected_columns, method, translucent_log.id, translucent_log.file_path)
 
         return jsonify({
         "message": "Translucent Log Generation (Prefix Automaton) in progress",
@@ -295,9 +297,9 @@ def prefix_automaton(id):
         }), 202
         
 @shared_task
-def process_translucent_log_from_prefix_automaton(file_path, states, transitions, threshold, selected_columns, translucent_log_id, translucent_log_file_path):
+def process_translucent_log_from_prefix_automaton(file_path, states, transitions, threshold, selected_columns, method, translucent_log_id, translucent_log_file_path):
     prefix_automaton = decode_prefix_automaton(states, transitions)
-    df = discover_translucent_log_from_pa(file_path, prefix_automaton, selected_columns, threshold)
+    df = translucify_prefix_automaton(file_path, prefix_automaton, selected_columns, method, threshold)
 
     # Save the translucent log to file system
     df.to_csv(translucent_log_file_path, sep=";", index=False)
@@ -316,6 +318,7 @@ def event_log_petri_net(id):
     body = request.json
     data_columns = body.get("columns")
     threshold: float = body.get("threshold")
+    method = body.get("method")
 
     event_log = db.get_or_404(EventLog, id)
     base_name, extension = os.path.splitext(event_log.file_path)
@@ -327,7 +330,7 @@ def event_log_petri_net(id):
     db.session.add(translucent_log)
     db.session.commit()
 
-    process_translucent_log_from_petri_net.delay(event_log.file_path, data_columns, threshold, translucent_log.id, translucent_log.file_path)
+    process_translucent_log_from_petri_net.delay(event_log.file_path, data_columns, threshold, method, translucent_log.id, translucent_log.file_path)
 
     return jsonify({
         "message": "Translucent Petri Net generation in progress",
@@ -335,10 +338,10 @@ def event_log_petri_net(id):
     }), 202
 
 @shared_task
-def process_translucent_log_from_petri_net(file_path, data_columns, threshold, translucent_log_id, translucent_log_file_path):
+def process_translucent_log_from_petri_net(file_path, data_columns, threshold, method, translucent_log_id, translucent_log_file_path):
 
     # Perform the long-running task
-    df = discover_translucent_log_from_model(file_path, data_columns, threshold)
+    df = translucify_petri_net(file_path, data_columns, method, threshold)
 
     # Save the translucent log to file system
     df.to_csv(translucent_log_file_path, sep=";", index=False)

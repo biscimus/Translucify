@@ -47,15 +47,18 @@ export async function getEventLogColumns(eventLogId: UUID) {
 export async function postTranslucentPetriNet({
     eventLogId,
     columns,
+    method,
     threshold,
 }: {
     eventLogId: UUID;
     columns: ColumnDefinition[];
+    method: string;
     threshold: number;
 }) {
     return (
         await axios.post(`/event-logs/${eventLogId}/petri-net`, {
             columns,
+            method,
             threshold,
         })
     ).data;
@@ -70,12 +73,14 @@ export async function postTranslucentPrefixAutomaton({
     states,
     transitions,
     selectedColumns,
+    method,
     threshold,
 }: {
     eventLogId: UUID;
     states: any[];
     transitions: any[];
     selectedColumns: any[];
+    method: string;
     threshold: number;
 }) {
     return (
@@ -83,6 +88,7 @@ export async function postTranslucentPrefixAutomaton({
             states,
             transitions,
             selectedColumns,
+            method,
             threshold,
         })
     ).data;

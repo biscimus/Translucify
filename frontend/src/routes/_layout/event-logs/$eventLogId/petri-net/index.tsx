@@ -3,6 +3,7 @@ import { getEventLogColumns, postTranslucentPetriNet } from "@lib/queries";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { UUID } from "crypto";
 import { useState } from "react";
 
 export const Route = createFileRoute(
@@ -10,7 +11,7 @@ export const Route = createFileRoute(
 )({
     component: () => {
         const { eventLogId } = Route.useParams();
-        return <PetriNetComponent eventLogId={eventLogId} />;
+        return <PetriNetComponent eventLogId={eventLogId as UUID} />;
     },
 });
 
@@ -20,12 +21,13 @@ export type ColumnDefinition = {
     type: ColumnType;
 };
 
-function PetriNetComponent({ eventLogId }: { eventLogId: string }) {
+function PetriNetComponent({ eventLogId }: { eventLogId: UUID }) {
     const navigate = useNavigate();
     const [selectedColumns, setSelectedColumns] = useState<ColumnDefinition[]>(
         []
     );
     const [threshold, setThreshold] = useState(0);
+    const [method, setMethod] = useState("logistic_regression");
     const {
         data: columns,
         isLoading,
@@ -44,6 +46,7 @@ function PetriNetComponent({ eventLogId }: { eventLogId: string }) {
         columnMutation.mutate({
             eventLogId,
             columns: selectedColumns,
+            method,
             threshold,
         });
         navigate({
@@ -70,6 +73,8 @@ function PetriNetComponent({ eventLogId }: { eventLogId: string }) {
                 setSelectedColumns={setSelectedColumns}
                 threshold={threshold}
                 setThreshold={setThreshold}
+                method={method}
+                setMethod={setMethod}
                 translucifyFunction={translucifyFunction}
             />
         );

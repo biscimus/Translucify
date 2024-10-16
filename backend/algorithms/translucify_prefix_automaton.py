@@ -12,12 +12,13 @@ from pm4py import read_xes
 from .transition_system import TransitionSystem, State, Transition
 from pm4py.objects.log.util.dataframe_utils import convert_timestamp_columns_in_df
 
-ACTIVITY_COLUMN = "concept:name"
-CASE_COLUMN = "case:concept:name"
-TIMESTAMP_COLUMN = "time:timestamp"
 DataState = dict[str, float]
 ObservationInstances = dict[Transition, tuple[list[DataState], list[bool]]]
 RegressionModels = dict[Transition, LogisticRegression]
+
+ACTIVITY_COLUMN = "concept:name"
+CASE_COLUMN = "case:concept:name"
+TIMESTAMP_COLUMN = "time:timestamp"
 
 def generate_prefix_automaton(log: pd.DataFrame):
     prefix_automaton = TransitionSystem(name="prefix_automaton", states=set(), transitions=set())
@@ -55,7 +56,6 @@ def generate_prefix_automaton(log: pd.DataFrame):
     return prefix_automaton
 
 # Translucent log generation with simple frequency threshold
-
 def fill_enabled_activities(log: pd.DataFrame, prefix_automaton: TransitionSystem, threshold=0.1):
 
     log["enabled_activities"] = None
@@ -90,7 +90,7 @@ def fill_enabled_activities(log: pd.DataFrame, prefix_automaton: TransitionSyste
 
 # Multivariate Logistic Regression with Prefix Automaton
 
-def discover_translucent_log_from_pa(log_filepath: str, prefix_automaton: TransitionSystem, selected_columns: list[dict[str]], threshold=0.1):
+def translucify_prefix_automaton(log_filepath: str, prefix_automaton: TransitionSystem, selected_columns: list[dict[str]], method, threshold=0.1):
 
     # If log flie is a CSV file, import it as a DataFrame
     # Else if log file is a XES file, import it as a log object

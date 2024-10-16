@@ -21,12 +21,14 @@ export default function PrefixAutomaton({
     eventLogId,
     prefixAutomatonMutation,
     selectedColumns,
+    method,
     threshold,
 }: {
     data: any;
     eventLogId: string;
     prefixAutomatonMutation: any;
     selectedColumns: ColumnDefinition[];
+    method: string;
     threshold: number;
 }) {
     const navigate = useNavigate();
@@ -277,6 +279,7 @@ export default function PrefixAutomaton({
                                 };
                             }),
                             selectedColumns,
+                            method,
                             threshold,
                         });
                         navigate({

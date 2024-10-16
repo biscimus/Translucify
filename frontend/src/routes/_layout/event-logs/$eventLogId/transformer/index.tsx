@@ -10,6 +10,7 @@ import {
 } from "@mantine/core";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { UUID } from "crypto";
 import { useState } from "react";
 
 export const Route = createFileRoute(
@@ -17,11 +18,11 @@ export const Route = createFileRoute(
 )({
     component: () => {
         const { eventLogId } = Route.useParams();
-        return <TransformerComponent eventLogId={eventLogId} />;
+        return <TransformerComponent eventLogId={eventLogId as UUID} />;
     },
 });
 
-function TransformerComponent({ eventLogId }: { eventLogId: string }) {
+function TransformerComponent({ eventLogId }: { eventLogId: UUID }) {
     const navigate = useNavigate();
     const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
     const [threshold, setThreshold] = useState(0);
@@ -51,7 +52,7 @@ function TransformerComponent({ eventLogId }: { eventLogId: string }) {
     if (isSuccess)
         return (
             <div style={{ padding: "2rem" }}>
-                <Title order={2}>Regression Configuration</Title>
+                <Title order={2}>Transformer Configuration</Title>
                 <Space h="xl" />
                 <Title order={4}>Choose data columns</Title>
                 <Space h="xs" />

@@ -1,4 +1,3 @@
 import alignment_based_generation
 import simple_algorithm
 import backend.algorithms.translucify_petri_net as translucify_petri_net
-import simple_transformer

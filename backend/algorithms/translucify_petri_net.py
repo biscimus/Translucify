@@ -1,4 +1,3 @@
-import argparse
 from math import prod
 import os
 import pandas as pd
@@ -8,6 +7,7 @@ from pandas import DataFrame, Series, read_csv
 from pm4py.objects.petri_net.obj import PetriNet, Marking
 from pm4py.algo.conformance.alignments.petri_net.variants import dijkstra_less_memory
 from pm4py.objects.petri_net.semantics import PetriNetSemantics
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 import numpy as np
@@ -20,6 +20,7 @@ DataState = dict[str, float]
 Activity = str
 ObservationInstances = dict[PetriNet.Transition, tuple[list[DataState], list[bool]]]
 RegressionModels = dict[PetriNet.Transition, LogisticRegression]
+RandomForests = dict[PetriNet.Transition, RandomForestClassifier]
 
 ACTIVITY_COLUMN = "concept:name"
 CASE_COLUMN = "case:concept:name"
@@ -27,7 +28,7 @@ TIMESTAMP_COLUMN = "time:timestamp"
 
 
 
-def discover_translucent_log_from_model(log_filepath: str, data_columns: list[dict[str]], threshold: float) -> DataFrame:
+def translucify_petri_net(log_filepath: str, data_columns: list[dict[str]], method: str, threshold: float) -> DataFrame:
     '''
     Discovers a translucent log from a given log file path using a threshold.
 
@@ -39,7 +40,6 @@ def discover_translucent_log_from_model(log_filepath: str, data_columns: list[di
     # Else if log file is a XES file, import it as a log object
     if log_filepath.endswith(".csv"):
         log = read_csv(log_filepath, sep=";")
-
         print("Event log from CSV: \n", log)
         log = convert_timestamp_columns_in_df(log)
         log[CASE_COLUMN] = log[CASE_COLUMN].astype("string")
@@ -51,7 +51,6 @@ def discover_translucent_log_from_model(log_filepath: str, data_columns: list[di
 
     print("Dataframe from log: \n", log)
     petri_net = discover_petri_net_inductive(log)
-    # view_petri_net(petri_net[0], initial_marking=petri_net[1], final_marking=petri_net[2], format="pdf")
 
     # Print number of traces of log
     num_traces = log[CASE_COLUMN].nunique()
@@ -60,10 +59,12 @@ def discover_translucent_log_from_model(log_filepath: str, data_columns: list[di
     # Choose (or select all) attribute columns
 
     
-    # Preprocess log
-    categorical_columns = [data_column["column"] for data_column in data_columns if data_column["type"] == "categorical"]
-    print("Categorical columns: ", categorical_columns)
-    log = pd.get_dummies(log, columns=categorical_columns, dtype=int)
+    # Preprocess log using one-hot encoding
+    # TODO: this is only for logistic regression, random forests need label encoding
+    if method == "logistic_regression":
+        categorical_columns = [data_column["column"] for data_column in data_columns if data_column["type"] == "categorical"]
+        print("Categorical columns: ", categorical_columns)
+        log = pd.get_dummies(log, columns=categorical_columns, dtype=int)
 
     print(f"Log after preprocessing:\n {log}")
 
@@ -74,10 +75,9 @@ def discover_translucent_log_from_model(log_filepath: str, data_columns: list[di
     observation_instances: ObservationInstances = create_observation_instances(petri_net, log, feature_columns)
     print("Observation instances: ", observation_instances)
 
-    regression_models: RegressionModels = create_regression_models(observation_instances, feature_columns)
+    regression_models = create_regression_models(observation_instances, feature_columns, method)
 
     return create_enabled_activities(petri_net, log, regression_models, feature_columns, threshold)
-
 
 def create_observation_instances(petri_net: tuple[PetriNet, Marking, Marking], log: DataFrame, feature_columns: list[str]) -> ObservationInstances:
     '''
@@ -129,14 +129,14 @@ def create_observation_instances(petri_net: tuple[PetriNet, Marking, Marking], l
     log.groupby(CASE_COLUMN, group_keys=False).apply(fill_observation_instances).reset_index()
     return observation_instances
 
-def create_regression_models(observation_instances: ObservationInstances, feature_columns: list[str]) -> RegressionModels:
+def create_regression_models(observation_instances: ObservationInstances, feature_columns: list[str], method: str) -> RegressionModels | RandomForests:
     '''
     Receives a dictionary of observation instances and creates a regression model for each transition.
     
     :param observation_instances: The dictionary of observation instances.
     :param feature_columns: The list of feature columns.
     '''
-    regression_models: RegressionModels = {transition: None for transition in observation_instances}
+    regression_models: RegressionModels | RandomForests = {transition: None for transition in observation_instances}
 
     accuracy_scores: dict[PetriNet.Transition, float] = {}
 
@@ -147,8 +147,11 @@ def create_regression_models(observation_instances: ObservationInstances, featur
         X_train, X_test, Y_train, Y_test = train_test_split(X_dataframe, Y_dataframe, test_size=0.2)
 
         try:
+            if method == "logistic_regression":
+                regression = LogisticRegression(solver="liblinear").fit(X_train, np.ravel(Y_train))
+            elif method == "random_forest":
+                regression = RandomForestClassifier().fit(X_train, np.ravel(Y_train))
             # Add regression model to corresponding transition
-            regression = LogisticRegression(solver="liblinear").fit(X_train, np.ravel(Y_train))
             regression_models[transition] = regression
             accuracy_scores[transition] = regression.score(X_test, np.ravel(Y_test))
         except ValueError:
@@ -164,16 +167,16 @@ def create_regression_models(observation_instances: ObservationInstances, featur
     
     # Define the path
     directory = '../logs'
-    file_path = os.path.join(directory, 'multivariate_regression_accuracy_scores.csv')
+    file_path = os.path.join(directory, 'multivariate_regression_accuracy_scores.csv' if method == "logistic_regression" else 'random_forest_accuracy_scores.csv')
 
     if not os.path.exists(directory):
         os.makedirs(directory)  # Create the directory if it does not exist
 
     accuracy_scores_dataframe.to_csv(file_path, index=False)
-
     return regression_models
 
-def create_enabled_activities(petri_net: tuple[PetriNet, Marking, Marking], log: DataFrame, regression_models: dict[PetriNet.Transition, LogisticRegression], feature_columns: list[str], threshold: float) -> DataFrame:
+
+def create_enabled_activities(petri_net: tuple[PetriNet, Marking, Marking], log: DataFrame, regression_models: RegressionModels | RandomForests, feature_columns: list[str], threshold: float) -> DataFrame:
 
     # Add column enabled_activities
     log["enabled_activities"] = None
@@ -202,10 +205,12 @@ def create_enabled_activities(petri_net: tuple[PetriNet, Marking, Marking], log:
                 #print("Enabled transitions:", enabled_transitions)
 
                 # Compute weighted sum of probabilities of enabled transitions
+                # TODO: add case for random forests
                 sum_of_probs = sum([regression_models[enabled_transition].predict_proba(current_data_state)[0][0] if regression_models[enabled_transition]!=1 else 1 for enabled_transition in enabled_transitions])
 
                 # Add all activities as children of the node
                 for enabled_transition in enabled_transitions:
+                    # TODO: add case for random forests
                     probability = regression_models[enabled_transition].predict_proba(current_data_state)[0][0] if regression_models[enabled_transition]!=1 else 1
                     probability /= sum_of_probs
                     child_node = Node(enabled_transition.name, parent=node, transition=enabled_transition, probability=probability)

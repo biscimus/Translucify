@@ -8,6 +8,7 @@ import {
     Switch,
     Title,
     Text,
+    SegmentedControl,
 } from "@mantine/core";
 import {
     ColumnDefinition,
@@ -20,6 +21,8 @@ export default function RegressionConfiguration({
     setSelectedColumns,
     threshold,
     setThreshold,
+    method,
+    setMethod,
     translucifyFunction,
     buttonText = "Discover Translucent Log",
 }: {
@@ -30,6 +33,8 @@ export default function RegressionConfiguration({
     >;
     threshold: number;
     setThreshold: any;
+    method: string;
+    setMethod: any;
     translucifyFunction: any;
     buttonText?: string;
 }) {
@@ -37,6 +42,20 @@ export default function RegressionConfiguration({
         <div style={{ padding: "2rem" }}>
             <Title order={2}>Regression Configuration</Title>
             <Space h="xl" />
+            <Title order={4}>Choose Your Model</Title>
+            <Space h="xs" />
+            <SegmentedControl
+                data={[
+                    {
+                        label: "Logistic Regression",
+                        value: "logistic_regression",
+                    },
+                    { label: "Random Forest", value: "random_forest" },
+                ]}
+                value={method}
+                onChange={setMethod}
+            />
+            <Space h="md" />
             <Title order={4}>Choose data columns</Title>
             <Space h="xs" />
             <MultiSelect
