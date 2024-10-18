@@ -1,15 +1,5 @@
 # Translucify: A Translucent Log Generation Algorithm
 
-### Using HPC
-
-#### Sign-In/Out
-
--   Turn on the RWTH VPN (Cisco AnyConnect) with the username `am106666` and the Cisco AnyConnect password. You will need the IdM SelfService MFA key in Google Authenticator.
--   In Powershell, type `ssh -l am106666 login18-1.hpc.itc.rwth-aachen.de` to connect. Type in your RegApp password and your HPC SSH MFA key in Google Authenticator. You can connect to other logic nodes listed [here](https://help.itc.rwth-aachen.de/service/rhr4fjjutttf/article/fc0bcd64e4df4d06bac1e3d1fc473309/).
--   Type `exit` to stop the remote connection.
-
-#### Running Jobs
-
 ## Introduction
 
 This is a hybrid TypeScript + Python app that uses React as the frontend and Flask as the API backend.
@@ -23,32 +13,46 @@ On localhost, the rewrite will be made to the `127.0.0.1:5000` port, which is wh
 
 ## Getting Started
 
+### Frontend
+
 For the frontend, install the dependencies:
 
 ```bash
 npm install
-# or
-yarn
-# or
-pnpm install
 ```
 
 Then, run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
 ```
 
 Open [http://localhost:5173](http://localhost:5173) with your browser to see the result.
 
-For the backend, run:
+### Backend
+
+For the backend Flask Application, run:
 
 ```
 flask run --debug
 ```
 
 to start the development server. The Flask server will be running on [http://127.0.0.1:5000](http://127.0.0.1:5000).
+
+To start the Celery broker, first run the Redis queue in the Docker container:
+
+```
+docker run -d -p 6379:6379 redis
+```
+
+Then, execute the following command to start Celery.
+
+```
+celery -A app.celery worker --loglevel INFO
+```
+
+### Connecting with the PADS remote microservice
+
+Connect to the RWTH VPN using Cisco AnyConnect. Then, run the `ssh-forward.sh` shell file to set up a bidirectional SSH connection.
+
+In the remote server, run the shell file `start_application_terminals.sh` in the `/projects/ba/Translucify-Transformer-Service` directory.
