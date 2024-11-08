@@ -14,6 +14,7 @@ import requests
 import uuid
 from celery import Celery, Task, shared_task
 import shutil
+import pm4py
 
 from algorithms.preprocessor import fetch_dataframe
 from algorithms.translucify_prefix_automaton import translucify_prefix_automaton, generate_prefix_automaton
@@ -254,9 +255,7 @@ def event_log_columns(id):
 
         df = fetch_dataframe(file_path, event_log.type.value)
 
-        df.rename(columns={columns.get("caseId"): "case:concept:name", columns.get("activity"): "concept:name", columns.get("timestamp"): "time:timestamp"}, inplace=True)
-
-        print("Changed dataframe: ", df)
+        df = pm4py.format_dataframe(df, case_id=columns.get("caseId"), activity_key=columns.get("activity"), timestamp_key=columns.get("timestamp"))
 
         df.to_csv(file_path, sep=";", index=False)
 

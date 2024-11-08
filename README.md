@@ -45,7 +45,7 @@ To start the Celery broker, first run the Redis queue in the Docker container:
 docker run -d -p 6379:6379 redis
 ```
 
-Then, execute the following command to start Celery.
+Then, execute the following command to start Celery from the `backend/` folder.
 
 ```
 celery -A app.celery worker --loglevel INFO
